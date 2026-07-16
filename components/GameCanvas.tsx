@@ -87,6 +87,10 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
     create() {
       const w = this.cameras.main.width
       const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+
+      this.gravity = isMobile ? 0.22 : 0.18
+      this.hitZone = isMobile ? 80 : 60
 
       this.slingshotX = w / 2
       this.slingshotY = h - 100
@@ -611,7 +615,7 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       this.trajectoryDots = []
       const dx = this.zero.x - this.zeroStartX
       const dy = this.zero.y - this.zeroStartY
-      const power = 0.22
+      const power = (Math.min(this.cameras.main.width, this.cameras.main.height) < 600) ? 0.28 : 0.22
       const vx = -dx * power
       const vy = -dy * power
       for (let t = 0; t < 40; t++) {
@@ -638,7 +642,7 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
 
       const dx = this.zero.x - this.zeroStartX
       const dy = this.zero.y - this.zeroStartY
-      const power = 0.22
+      const power = (Math.min(this.cameras.main.width, this.cameras.main.height) < 600) ? 0.28 : 0.22
       this.vx = -dx * power
       this.vy = -dy * power
 

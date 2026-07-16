@@ -11,6 +11,8 @@ export async function GET() {
       include: { player: true },
     })
 
+    const totalPlayers = await prisma.player.count()
+
     const bubbles = sessions.map((s: { id: string; player: { name: string }; comment: string; score: number; createdAt: Date }) => ({
       id: s.id,
       name: s.player.name,
@@ -19,7 +21,7 @@ export async function GET() {
       createdAt: s.createdAt,
     }))
 
-    return NextResponse.json(bubbles)
+    return NextResponse.json({ bubbles, totalPlayers })
   } catch (error) {
     console.error('Bubbles fetch error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

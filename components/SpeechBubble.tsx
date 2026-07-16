@@ -74,16 +74,23 @@ export default function FloatingWall() {
       try {
         const res = await fetch('/api/bubbles')
         if (!res.ok) return
-        const data: BubbleData[] = await res.json()
+        const json = await res.json()
+        const data: BubbleData[] = json.bubbles ?? json
 
         const w = window.innerWidth
         const h = window.innerHeight
         const cx = w / 2
         const cy = h / 2
 
+        const total = data.length
+        const densityScale = total > 30 ? Math.max(0.5, 1 - (total - 30) * 0.008) : 1
+
         const sizes: Array<'xs' | 'sm' | 'md' | 'lg' | 'xl'> = ['xs', 'sm', 'sm', 'md', 'md', 'lg', 'xl']
         const newBubbles: FloatingBubble[] = data.map((b, i) => {
-          const size = sizes[i % sizes.length]
+          const baseSize = sizes[i % sizes.length]
+          const sizeOrder = ['xs', 'sm', 'md', 'lg', 'xl']
+          const idx = Math.max(0, Math.min(sizeOrder.length - 1, Math.floor(sizeOrder.indexOf(baseSize) * densityScale)))
+          const size = sizeOrder[idx] as 'xs' | 'sm' | 'md' | 'lg' | 'xl'
           const angle = Math.random() * Math.PI * 2
           const spreadX = w * 0.38
           const spreadY = h * 0.35

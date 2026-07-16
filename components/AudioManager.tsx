@@ -56,7 +56,7 @@ export function AudioManager({ children }: { children: ReactNode }) {
       {children}
       <button
         onClick={toggleMute}
-        className="fixed top-4 right-4 z-50 w-11 h-11 rounded-full flex items-center justify-center text-lg transition-all duration-300 active:scale-90"
+        className="fixed top-4 left-4 z-50 w-11 h-11 rounded-full flex items-center justify-center text-lg transition-all duration-300 active:scale-90"
         style={{
           background: 'linear-gradient(135deg, #2E7D32, #43A047)',
           boxShadow: '0 0 20px rgba(46, 125, 50, 0.4), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
