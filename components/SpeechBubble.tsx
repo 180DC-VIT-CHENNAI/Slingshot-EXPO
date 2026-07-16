@@ -12,11 +12,6 @@ interface BubbleData {
 interface FloatingBubble extends BubbleData {
   x: number
   y: number
-  angle: number
-  orbitSpeed: number
-  orbitRadius: number
-  centerX: number
-  centerY: number
   rotation: number
   vr: number
   scale: number
@@ -36,11 +31,11 @@ const CLOUD_COLORS = [
 ]
 
 const SIZE_MAP = {
-  xs: { px: 'px-3 py-1.5', name: 'text-[10px]', comment: 'text-[9px]', minW: 70, maxW: 100 },
-  sm: { px: 'px-4 py-2', name: 'text-xs', comment: 'text-[10px]', minW: 90, maxW: 130 },
-  md: { px: 'px-5 py-2.5', name: 'text-sm', comment: 'text-xs', minW: 110, maxW: 160 },
-  lg: { px: 'px-6 py-3', name: 'text-base', comment: 'text-xs', minW: 140, maxW: 200 },
-  xl: { px: 'px-7 py-3.5', name: 'text-lg', comment: 'text-sm', minW: 170, maxW: 240 },
+  xs: { px: 'px-2 py-1 sm:px-3 sm:py-1.5', name: 'text-[9px] sm:text-[10px]', comment: 'text-[8px] sm:text-[9px]', minW: 55, maxW: 80 },
+  sm: { px: 'px-3 py-1.5 sm:px-4 sm:py-2', name: 'text-[10px] sm:text-xs', comment: 'text-[9px] sm:text-[10px]', minW: 70, maxW: 110 },
+  md: { px: 'px-3 py-2 sm:px-5 sm:py-2.5', name: 'text-xs sm:text-sm', comment: 'text-[10px] sm:text-xs', minW: 85, maxW: 140 },
+  lg: { px: 'px-4 py-2 sm:px-6 sm:py-3', name: 'text-sm sm:text-base', comment: 'text-[10px] sm:text-xs', minW: 110, maxW: 175 },
+  xl: { px: 'px-5 py-2.5 sm:px-7 sm:py-3.5', name: 'text-base sm:text-lg', comment: 'text-xs sm:text-sm', minW: 140, maxW: 215 },
 }
 
 function CloudBubble({ name, comment, size }: { name: string; comment: string; size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
@@ -63,11 +58,27 @@ function CloudBubble({ name, comment, size }: { name: string; comment: string; s
   )
 }
 
-export default function FloatingWall() {
-  const [bubbles, setBubbles] = useState<FloatingBubble[]>([])
-  const [loaded, setLoaded] = useState(false)
-  const timeRef = useRef(0)
+function getDensityScale(count: number): number {
+  if (count <= 60) return 1
+  return Math.max(0.6, 1 - (count - 60) * 0.0015)
+}
+
+function isMobile(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < 640
+}
+
+function getMaxBubbles(): number {
+  if (typeof window === 'undefined') return 80
+  return window.innerWidth < 640 ? 50 : 80
+}
+
+export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: number }) {
+  const bubblesRef = useRef<FloatingBubble[]>([])
+  const renderCountRef = useRef(0)
+  const [, forceRender] = useState(0)
   const animRef = useRef<number>(0)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     async function fetchBubbles() {
@@ -81,105 +92,121 @@ export default function FloatingWall() {
         const h = window.innerHeight
         const cx = w / 2
         const cy = h / 2
+        const mobile = w < 640
 
-        const total = data.length
-        const densityScale = total > 60 ? Math.max(0.65, 1 - (total - 60) * 0.005) : 1
+        const sizePattern: Array<'xs' | 'sm' | 'md' | 'lg' | 'xl'> = mobile
+          ? ['xs', 'xs', 'sm', 'sm', 'md']
+          : ['xs', 'sm', 'sm', 'md', 'md', 'lg', 'xl']
 
-        const sizes: Array<'xs' | 'sm' | 'md' | 'lg' | 'xl'> = ['xs', 'sm', 'sm', 'md', 'md', 'lg', 'xl']
-        const newBubbles: FloatingBubble[] = data.map((b, i) => {
-          const baseSize = sizes[i % sizes.length]
-          const sizeOrder = ['xs', 'sm', 'md', 'lg', 'xl']
-          const idx = Math.max(0, Math.min(sizeOrder.length - 1, Math.floor(sizeOrder.indexOf(baseSize) * densityScale)))
-          const size = sizeOrder[idx] as 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-          const angle = Math.random() * Math.PI * 2
-          const spreadX = w * 0.38
-          const spreadY = h * 0.35
+        const existingIds = new Set(bubblesRef.current.map((b) => b.id))
+        const newBubbles: FloatingBubble[] = []
 
-          return {
+        data.forEach((b, i) => {
+          if (existingIds.has(b.id)) return
+
+          const spreadX = w * 0.48
+          const spreadY = h * 0.46
+
+          newBubbles.push({
             ...b,
             x: cx + (Math.random() - 0.5) * spreadX * 2,
             y: cy + (Math.random() - 0.5) * spreadY * 2,
-            angle,
-            orbitSpeed: (0.0003 + Math.random() * 0.0005) * (Math.random() > 0.5 ? 1 : -1),
-            orbitRadius: 15 + Math.random() * 40,
-            centerX: cx + (Math.random() - 0.5) * spreadX * 2,
-            centerY: cy + (Math.random() - 0.5) * spreadY * 2,
-            rotation: (Math.random() - 0.5) * 8,
-            vr: (Math.random() - 0.5) * 0.15,
+            rotation: (Math.random() - 0.5) * 6,
+            vr: (Math.random() - 0.5) * 0.08,
             scale: 0,
             targetScale: 1,
             opacity: 0,
             targetOpacity: 0.85 + Math.random() * 0.15,
-            size,
+            size: sizePattern[i % sizePattern.length],
             depth: Math.random(),
-          }
+          })
         })
 
-        newBubbles.sort((a, b) => a.depth - b.depth)
-        setBubbles(newBubbles.slice(0, 80))
-        setLoaded(true)
+        if (newBubbles.length > 0) {
+          bubblesRef.current = [...bubblesRef.current, ...newBubbles]
+            .sort((a, b) => a.depth - b.depth)
+            .slice(0, getMaxBubbles())
+          renderCountRef.current++
+          forceRender(renderCountRef.current)
+        }
+
+        if (!loaded) setLoaded(true)
       } catch {
-        setLoaded(true)
+        if (!loaded) setLoaded(true)
       }
     }
 
     fetchBubbles()
     const interval = setInterval(fetchBubbles, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [loaded])
+
+  useEffect(() => {
+    const densityScale = getDensityScale(totalPlayers)
+    bubblesRef.current.forEach((b) => {
+      b.targetScale = densityScale
+    })
+  }, [totalPlayers])
 
   useEffect(() => {
     if (!loaded) return
 
     let lastTime = performance.now()
+
     function animate(now: number) {
       const dt = Math.min(now - lastTime, 50)
       lastTime = now
-      timeRef.current += dt
 
-      setBubbles((prev) => {
-        const w = window.innerWidth
-        const h = window.innerHeight
+      const bubbles = bubblesRef.current
+      let needsRender = false
 
-        return prev.map((b) => {
-          const newAngle = b.angle + b.orbitSpeed * dt
-          const x = b.centerX + Math.cos(newAngle) * b.orbitRadius
-          const y = b.centerY + Math.sin(newAngle) * b.orbitRadius * 0.6
+      for (let i = 0; i < bubbles.length; i++) {
+        const b = bubbles[i]
 
-          const newScale = b.scale + (b.targetScale - b.scale) * 0.04
-          const newOpacity = b.opacity + (b.targetOpacity - b.opacity) * 0.04
+        const newScale = b.scale + (b.targetScale - b.scale) * 0.04
+        if (Math.abs(newScale - b.scale) > 0.0001) {
+          b.scale = newScale
+          needsRender = true
+        } else if (b.scale !== b.targetScale) {
+          b.scale = b.targetScale
+          needsRender = true
+        }
 
-          let newRotation = b.rotation + b.vr * (dt / 16)
-          if (Math.abs(newRotation) > 10) b.vr *= -1
+        const newOpacity = b.opacity + (b.targetOpacity - b.opacity) * 0.04
+        if (Math.abs(newOpacity - b.opacity) > 0.0001) {
+          b.opacity = newOpacity
+          needsRender = true
+        } else if (b.opacity !== b.targetOpacity) {
+          b.opacity = b.targetOpacity
+          needsRender = true
+        }
 
-          let newCenterX = b.centerX
-          let newCenterY = b.centerY
-          if (newCenterX < w * 0.1 || newCenterX > w * 0.9) newCenterX = w * 0.5
-          if (newCenterY < h * 0.1 || newCenterY > h * 0.9) newCenterY = h * 0.5
+        let newRotation = b.rotation + b.vr * (dt / 16)
+        if (Math.abs(newRotation) > 10) {
+          b.vr *= -1
+          newRotation = b.rotation + b.vr * (dt / 16)
+        }
+        if (Math.abs(newRotation - b.rotation) > 0.001) {
+          b.rotation = newRotation
+          needsRender = true
+        }
+      }
 
-          return {
-            ...b,
-            x, y,
-            angle: newAngle,
-            rotation: newRotation,
-            vr: b.vr,
-            scale: newScale,
-            opacity: newOpacity,
-            centerX: newCenterX,
-            centerY: newCenterY,
-          }
-        })
-      })
+      if (needsRender) {
+        renderCountRef.current++
+        forceRender(renderCountRef.current)
+      }
 
       animRef.current = requestAnimationFrame(animate)
     }
+
     animRef.current = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(animRef.current)
   }, [loaded])
 
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 1 }}>
-      {bubbles.map((b) => (
+      {bubblesRef.current.map((b) => (
         <div
           key={b.id}
           className="absolute pointer-events-none"
@@ -195,12 +222,12 @@ export default function FloatingWall() {
         </div>
       ))}
 
-      {bubbles.length === 0 && loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
+      {bubblesRef.current.length === 0 && loaded && (
+        <div className="absolute inset-0 flex items-center justify-center px-4">
           <div className="text-center">
-            <div className="text-6xl mb-4">💬</div>
-            <p className="text-white/70 font-display text-lg">No consultants yet!</p>
-            <p className="text-white/50 text-sm mt-2">Play the game to add your bubble</p>
+            <div className="text-4xl sm:text-6xl mb-4">💬</div>
+            <p className="text-white/70 font-display text-base sm:text-lg">No consultants yet!</p>
+            <p className="text-white/50 text-xs sm:text-sm mt-2">Play the game to add your bubble</p>
           </div>
         </div>
       )}
