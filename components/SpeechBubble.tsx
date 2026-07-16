@@ -83,7 +83,7 @@ export default function FloatingWall() {
         const cy = h / 2
 
         const total = data.length
-        const densityScale = total > 30 ? Math.max(0.5, 1 - (total - 30) * 0.008) : 1
+        const densityScale = total > 60 ? Math.max(0.65, 1 - (total - 60) * 0.005) : 1
 
         const sizes: Array<'xs' | 'sm' | 'md' | 'lg' | 'xl'> = ['xs', 'sm', 'sm', 'md', 'md', 'lg', 'xl']
         const newBubbles: FloatingBubble[] = data.map((b, i) => {

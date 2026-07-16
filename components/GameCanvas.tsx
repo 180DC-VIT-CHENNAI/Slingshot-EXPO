@@ -89,7 +89,7 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       const h = this.cameras.main.height
       const isMobile = Math.min(w, h) < 600
 
-      this.gravity = isMobile ? 0.22 : 0.18
+      this.gravity = isMobile ? 0.26 : 0.18
       this.hitZone = isMobile ? 80 : 60
 
       this.slingshotX = w / 2
