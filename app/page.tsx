@@ -1,0 +1,70 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import AnimatedBackground from '@/components/AnimatedBackground'
+import { AudioManager } from '@/components/AudioManager'
+
+export default function HomePage() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return (
+    <AudioManager>
+      <AnimatedBackground />
+      <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ zIndex: 10 }}>
+        <div className={`text-center transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div className="mb-10">
+            <div className="relative inline-block animate-float-gentle">
+              <div className="w-36 h-36 mx-auto rounded-3xl flex items-center justify-center shadow-2xl animate-glow-breathe"
+                   style={{
+                     background: 'rgba(15, 20, 35, 0.85)',
+                     backdropFilter: 'blur(20px)',
+                     border: '1px solid rgba(255,255,255,0.15)',
+                     boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 25px rgba(46, 125, 50, 0.3)',
+                   }}>
+                <span className="font-display font-black text-5xl tracking-tighter text-white">
+                  1<span className="text-180dc-green-neon">80</span>DC
+                </span>
+              </div>
+              <div className="absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
+                   style={{
+                     background: 'linear-gradient(135deg, #43A047, #2E7D32)',
+                     border: '2px solid rgba(255,255,255,0.3)',
+                     boxShadow: '0 4px 15px rgba(46, 125, 50, 0.5)',
+                   }}>
+                0
+              </div>
+            </div>
+          </div>
+
+          <h1 className="font-display font-black text-4xl sm:text-5xl mb-4 leading-tight text-white">
+            Restore the
+            <br />
+            <span className="text-180dc-green-neon" style={{ textShadow: '0 0 20px rgba(124,252,0,0.6), 0 2px 4px rgba(0,0,0,0.3)' }}>Missing Zero</span>
+          </h1>
+
+          <p className="text-sm sm:text-base mb-12 max-w-xs mx-auto leading-relaxed text-white/70">
+            Slingshot the missing &quot;0&quot; back into the 180DC logo!
+          </p>
+
+          <a
+            href="/play"
+            className="inline-block btn-primary text-xl px-14 py-5 rounded-2xl"
+          >
+            PLAY NOW
+          </a>
+
+          <div className="mt-10 flex items-center justify-center gap-6 text-xs">
+            <a href="/wall" className="text-white/50 hover:text-white/80 transition-colors">
+              Wall of Consultants
+            </a>
+          </div>
+        </div>
+      </div>
+    </AudioManager>
+  )
+}
