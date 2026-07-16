@@ -19,11 +19,12 @@ export default function HomePage() {
         className="fixed inset-0"
         style={{
           zIndex: 1,
+          backgroundColor: '#01245d',
           backgroundImage: 'url(/images/image.svg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          opacity: 0.4,
+          opacity: 0.3,
         }}
       />
       <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ zIndex: 10 }}>
