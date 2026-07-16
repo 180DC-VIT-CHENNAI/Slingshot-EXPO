@@ -15,6 +15,17 @@ export default function HomePage() {
   return (
     <AudioManager>
       <AnimatedBackground />
+      <div
+        className="fixed inset-0"
+        style={{
+          zIndex: 1,
+          backgroundImage: 'url(/images/image.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.4,
+        }}
+      />
       <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ zIndex: 10 }}>
         <div className={`text-center transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="mb-10">
