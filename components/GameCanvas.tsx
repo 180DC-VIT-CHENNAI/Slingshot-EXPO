@@ -103,14 +103,20 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.slotX = w / 2
       this.slotY = h * 0.12
 
-      this.drawDeepSky(w, h)
-      this.drawStars(w, h)
-      this.drawDistantHills(w, h)
+      this.drawSky(w, h)
+      this.drawSunGlow(w, h)
+      this.drawGodRays(w, h)
+      this.drawDustMotes(w, h)
       this.drawClouds(w, h)
-      this.drawMidHills(w, h)
+      this.drawFarMountains(w, h)
+      this.drawHaze(w, h)
+      this.drawMidMountains(w, h)
+      this.drawNearHills(w, h)
+      this.drawLake(w, h)
       this.drawGround(w, h)
       this.drawGrass(w, h)
       this.drawTrees(w, h)
+      this.drawColorGrade(w, h)
       this.drawSpotlights(w, h)
       this.drawLogo(w, h)
       this.drawSlingshotBase()
@@ -126,32 +132,222 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.input.on('pointerup', this.onPointerUp, this)
     }
 
-    private drawDeepSky(w: number, h: number) {
+    // Golden-hour sky: deep teal up top → warm gold at the horizon
+    private drawSky(w: number, h: number) {
       const sky = this.add.graphics()
-      for (let y = 0; y < h * 0.7; y++) {
-        const t = y / (h * 0.7)
-        const r = Math.floor(10 + (40 - 10) * t)
-        const g = Math.floor(22 + (70 - 22) * t)
-        const b = Math.floor(40 + (120 - 40) * t)
+      const horizonY = h * 0.62
+      for (let y = 0; y < horizonY; y++) {
+        const t = y / horizonY
+        let r: number, g: number, b: number
+        if (t < 0.35) {
+          const u = t / 0.35
+          r = Math.floor(34 + (96 - 34) * u)
+          g = Math.floor(58 + (146 - 58) * u)
+          b = Math.floor(92 + (178 - 92) * u)
+        } else if (t < 0.7) {
+          const u = (t - 0.35) / 0.35
+          r = Math.floor(96 + (242 - 96) * u)
+          g = Math.floor(146 + (168 - 146) * u)
+          b = Math.floor(178 + (124 - 178) * u)
+        } else {
+          const u = (t - 0.7) / 0.3
+          r = Math.floor(242 + (255 - 242) * u)
+          g = Math.floor(168 + (198 - 168) * u)
+          b = Math.floor(124 + (108 - 124) * u)
+        }
         sky.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1)
         sky.fillRect(0, y, w, 1)
       }
       sky.setDepth(-15)
     }
 
-    private drawStars(w: number, h: number) {
-      for (let i = 0; i < 30; i++) {
-        const star = this.add.circle(
+    // Low warm sun with layered radial glow halo
+    private drawSunGlow(w: number, h: number) {
+      const sunX = w * 0.72
+      const sunY = h * 0.5
+      const glow = this.add.graphics().setDepth(-14)
+      for (let i = 14; i > 0; i--) {
+        const radius = 40 + i * 70
+        const alpha = 0.04 * (15 - i) / 14
+        glow.fillStyle(0xffd089, alpha)
+        glow.fillCircle(sunX, sunY, radius)
+      }
+      const disc = this.add.graphics().setDepth(-13)
+      disc.fillStyle(0xfff0d0, 0.95)
+      disc.fillCircle(sunX, sunY, 46)
+      disc.fillStyle(0xffe8b8, 0.6)
+      disc.fillCircle(sunX, sunY, 32)
+      disc.fillStyle(0xfffbe8, 0.9)
+      disc.fillCircle(sunX, sunY, 18)
+      this.tweens.add({
+        targets: glow,
+        alpha: { from: 0.85, to: 1 },
+        scaleX: { from: 0.97, to: 1.04 },
+        scaleY: { from: 0.97, to: 1.04 },
+        duration: 4500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
+
+    // Volumetric god rays emanating from the sun
+    private drawGodRays(w: number, h: number) {
+      const sunX = w * 0.72
+      const sunY = h * 0.5
+      const rays = this.add.graphics().setDepth(-12)
+      const rayCount = 9
+      for (let i = 0; i < rayCount; i++) {
+        const angle = (-0.6 + (i / (rayCount - 1)) * 1.2) * Math.PI
+        const len = h * (0.7 + Math.random() * 0.3)
+        const width = 40 + Math.random() * 50
+        const endX = sunX + Math.cos(angle) * len
+        const endY = sunY + Math.sin(angle) * len
+        const perpX = -Math.sin(angle) * width
+        const perpY = Math.cos(angle) * width
+        rays.fillStyle(0xffe8b0, 0.06 + Math.random() * 0.04)
+        rays.beginPath()
+        rays.moveTo(sunX - perpX * 0.3, sunY - perpY * 0.3)
+        rays.lineTo(sunX + perpX * 0.3, sunY + perpY * 0.3)
+        rays.lineTo(endX + perpX, endY + perpY)
+        rays.lineTo(endX - perpX, endY - perpY)
+        rays.closePath()
+        rays.fillPath()
+      }
+      this.tweens.add({
+        targets: rays,
+        alpha: { from: 0.7, to: 1 },
+        duration: 5000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
+
+    // Warm golden dust motes drifting up through the sunlit air
+    private drawDustMotes(w: number, h: number) {
+      for (let i = 0; i < 45; i++) {
+        const mote = this.add.circle(
           Math.random() * w,
-          Math.random() * h * 0.4,
-          Math.random() * 1.2 + 0.3,
-          0xffffff,
-          Math.random() * 0.3 + 0.05
-        ).setDepth(-14)
+          h * 0.3 + Math.random() * h * 0.4,
+          Math.random() * 1.6 + 0.4,
+          0xffe8b0,
+          Math.random() * 0.45 + 0.1
+        ).setDepth(-13)
+        const startY = mote.y
+        const startX = mote.x
         this.tweens.add({
-          targets: star,
-          alpha: { from: star.alpha, to: star.alpha * 0.3 },
-          duration: 1500 + Math.random() * 2000,
+          targets: mote,
+          y: startY - 40 - Math.random() * 25,
+          x: startX + (Math.random() - 0.5) * 24,
+          alpha: 0,
+          duration: 4500 + Math.random() * 3500,
+          repeat: -1,
+          delay: Math.random() * 4500,
+          ease: 'Sine.easeOut',
+        })
+      }
+    }
+
+    // Warm golden-hour clouds — lit from below by the low sun
+    private drawClouds(w: number, h: number) {
+      const positions = [
+        { x: w * 0.1, y: h * 0.08, s: 1.5, speed: 24 },
+        { x: w * 0.42, y: h * 0.05, s: 1.1, speed: 20 },
+        { x: w * 0.85, y: h * 0.12, s: 1.3, speed: 22 },
+        { x: w * 0.25, y: h * 0.18, s: 0.8, speed: 17 },
+        { x: w * 0.65, y: h * 0.15, s: 0.9, speed: 19 },
+        { x: w * 0.18, y: h * 0.24, s: 0.6, speed: 15 },
+        { x: w * 0.55, y: h * 0.26, s: 0.7, speed: 18 },
+      ]
+      positions.forEach((cp) => {
+        const c = this.add.graphics()
+        c.fillStyle(0xffd09a, 0.2)
+        c.fillEllipse(0, 3, 92 * cp.s, 16 * cp.s)
+        c.fillEllipse(-36 * cp.s, 2, 62 * cp.s, 14 * cp.s)
+        c.fillEllipse(36 * cp.s, 1, 54 * cp.s, 12 * cp.s)
+        c.fillStyle(0xe8b888, 0.13)
+        c.fillEllipse(0, -5, 82 * cp.s, 12 * cp.s)
+        c.fillEllipse(-30 * cp.s, -4, 52 * cp.s, 10 * cp.s)
+        c.fillEllipse(30 * cp.s, -3, 46 * cp.s, 9 * cp.s)
+        c.fillStyle(0xfff0c8, 0.1)
+        c.fillEllipse(8 * cp.s, -1, 40 * cp.s, 6 * cp.s)
+        c.setPosition(cp.x, cp.y)
+        c.setDepth(-10)
+        this.tweens.add({
+          targets: c,
+          x: cp.x + 32,
+          duration: cp.speed * 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        })
+      })
+    }
+
+    // Far misty mountain silhouettes with atmospheric depth
+    private drawFarMountains(w: number, h: number) {
+      const g = this.add.graphics()
+      const baseY = h * 0.55
+      g.fillStyle(0x8a9bb0, 0.55)
+      g.beginPath()
+      g.moveTo(0, baseY)
+      const pts1 = [
+        [0, baseY], [w * 0.12, baseY - h * 0.08], [w * 0.22, baseY - h * 0.04],
+        [w * 0.35, baseY - h * 0.1], [w * 0.48, baseY - h * 0.06],
+        [w * 0.6, baseY - h * 0.12], [w * 0.72, baseY - h * 0.07],
+        [w * 0.85, baseY - h * 0.11], [w, baseY - h * 0.05], [w, baseY],
+      ]
+      pts1.forEach((p, i) => (i === 0 ? g.moveTo(p[0], p[1]) : g.lineTo(p[0], p[1])))
+      g.closePath()
+      g.fillPath()
+      g.fillStyle(0x6b7e94, 0.7)
+      g.beginPath()
+      g.moveTo(0, baseY + h * 0.02)
+      const pts2 = [
+        [0, baseY + h * 0.02], [w * 0.08, baseY - h * 0.05],
+        [w * 0.2, baseY - h * 0.02], [w * 0.3, baseY - h * 0.07],
+        [w * 0.45, baseY - h * 0.03], [w * 0.58, baseY - h * 0.09],
+        [w * 0.7, baseY - h * 0.04], [w * 0.82, baseY - h * 0.08],
+        [w * 0.92, baseY - h * 0.03], [w, baseY - h * 0.06], [w, baseY + h * 0.02],
+      ]
+      pts2.forEach((p, i) => (i === 0 ? g.moveTo(p[0], p[1]) : g.lineTo(p[0], p[1])))
+      g.closePath()
+      g.fillPath()
+      g.fillStyle(0xfff0e0, 0.7)
+      const caps2 = [
+        [w * 0.08, baseY - h * 0.05], [w * 0.3, baseY - h * 0.07],
+        [w * 0.58, baseY - h * 0.09], [w * 0.82, baseY - h * 0.08],
+      ]
+      caps2.forEach((c) => {
+        g.fillTriangle(c[0], c[1], c[0] - 14, c[1] + 16, c[0] + 14, c[1] + 16)
+        g.fillStyle(0xffe0c0, 0.5)
+        g.fillTriangle(c[0], c[1], c[0] - 8, c[1] + 9, c[0] + 8, c[1] + 9)
+        g.fillStyle(0xfff0e0, 0.7)
+      })
+      g.setDepth(-12)
+    }
+
+    // Soft warm atmospheric haze band between mountain layers
+    private drawHaze(w: number, h: number) {
+      const haze = this.add.graphics().setDepth(-11)
+      for (let i = 0; i < 8; i++) {
+        const y = h * 0.49 + i * 10
+        const alpha = 0.08 - i * 0.009
+        haze.fillStyle(0xffd9a8, alpha)
+        haze.fillRect(0, y, w, 18)
+      }
+      for (let i = 0; i < 5; i++) {
+        const fx = Math.random() * w
+        const fy = h * 0.48 + Math.random() * h * 0.08
+        const fog = this.add.graphics().setDepth(-11)
+        fog.fillStyle(0xffe0b8, 0.08)
+        fog.fillEllipse(fx, fy, 180 + Math.random() * 120, 24 + Math.random() * 12)
+        this.tweens.add({
+          targets: fog,
+          x: 20 + Math.random() * 20,
+          alpha: { from: 0.6, to: 1 },
+          duration: 6000 + Math.random() * 4000,
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut',
@@ -159,92 +355,195 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       }
     }
 
-    private drawDistantHills(w: number, h: number) {
+    // Mid-distance mountains — darker forest green
+    private drawMidMountains(w: number, h: number) {
       const g = this.add.graphics()
-      g.fillStyle(0x1a3a2a, 1)
-      g.fillEllipse(w * 0.2, h * 0.55, w * 0.5, h * 0.12)
-      g.fillEllipse(w * 0.8, h * 0.52, w * 0.55, h * 0.14)
-      g.fillStyle(0x1f4a32, 1)
-      g.fillEllipse(w * 0.55, h * 0.56, w * 0.45, h * 0.10)
-      g.setDepth(-12)
-    }
-
-    private drawClouds(w: number, h: number) {
-      const positions = [
-        { x: w * 0.08, y: h * 0.04, s: 1.4, speed: 14 },
-        { x: w * 0.45, y: h * 0.07, s: 1.0, speed: 11 },
-        { x: w * 0.88, y: h * 0.02, s: 1.2, speed: 13 },
-        { x: w * 0.25, y: h * 0.11, s: 0.7, speed: 10 },
-        { x: w * 0.72, y: h * 0.09, s: 0.8, speed: 12 },
-        { x: w * 0.15, y: h * 0.15, s: 0.5, speed: 9 },
-        { x: w * 0.6, y: h * 0.14, s: 0.6, speed: 11 },
+      const baseY = h * 0.58
+      g.fillStyle(0x3d5a4a, 0.92)
+      g.beginPath()
+      g.moveTo(0, baseY)
+      const pts = [
+        [0, baseY], [w * 0.1, baseY - h * 0.06], [w * 0.25, baseY - h * 0.03],
+        [w * 0.4, baseY - h * 0.08], [w * 0.55, baseY - h * 0.04],
+        [w * 0.68, baseY - h * 0.09], [w * 0.8, baseY - h * 0.05],
+        [w * 0.92, baseY - h * 0.07], [w, baseY - h * 0.04], [w, baseY],
       ]
-      positions.forEach((cp) => {
-        const c = this.add.graphics()
-        c.fillStyle(0xffffff, 0.08)
-        c.fillEllipse(0, 0, 80 * cp.s, 38 * cp.s)
-        c.fillEllipse(-32 * cp.s, -5 * cp.s, 55 * cp.s, 32 * cp.s)
-        c.fillEllipse(32 * cp.s, -3 * cp.s, 46 * cp.s, 28 * cp.s)
-        c.setPosition(cp.x, cp.y)
-        c.setDepth(-8)
-        this.tweens.add({ targets: c, x: cp.x + 20, duration: cp.speed * 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
-      })
+      pts.forEach((p, i) => (i === 0 ? g.moveTo(p[0], p[1]) : g.lineTo(p[0], p[1])))
+      g.closePath()
+      g.fillPath()
+      g.setDepth(-9)
     }
 
-    private drawMidHills(w: number, h: number) {
+    // Near hills with warm rim light along sunlit crests
+    private drawNearHills(w: number, h: number) {
       const g = this.add.graphics()
+      const baseY = h * 0.62
       g.fillStyle(0x2d5a3d, 1)
-      g.fillEllipse(w * 0.12, h * 0.58, w * 0.42, h * 0.15)
-      g.fillEllipse(w * 0.82, h * 0.56, w * 0.48, h * 0.17)
-      g.fillStyle(0x3a7a50, 1)
-      g.fillEllipse(w * 0.5, h * 0.6, w * 0.55, h * 0.13)
-      g.setDepth(-6)
+      g.beginPath()
+      g.moveTo(0, baseY)
+      const pts = [
+        [0, baseY], [w * 0.15, baseY - h * 0.04], [w * 0.3, baseY - h * 0.02],
+        [w * 0.5, baseY - h * 0.05], [w * 0.7, baseY - h * 0.025],
+        [w * 0.85, baseY - h * 0.04], [w, baseY - h * 0.02], [w, baseY],
+      ]
+      pts.forEach((p, i) => (i === 0 ? g.moveTo(p[0], p[1]) : g.lineTo(p[0], p[1])))
+      g.closePath()
+      g.fillPath()
+      g.lineStyle(2, 0xc8a060, 0.4)
+      g.beginPath()
+      pts.forEach((p, i) => (i === 0 ? g.moveTo(p[0], p[1]) : g.lineTo(p[0], p[1])))
+      g.strokePath()
+      g.setDepth(-7)
     }
 
+    // Warm ground gradient with golden sunlit edge
     private drawGround(w: number, h: number) {
       const g = this.add.graphics()
-      g.fillStyle(0x3a7a50, 1)
-      g.fillRect(0, h * 0.62, w, h * 0.38)
-      g.fillStyle(0x4a9a60, 0.5)
-      g.fillRect(0, h * 0.62, w, 3)
-      g.setDepth(-4)
+      const groundY = h * 0.66
+      for (let y = groundY; y < h; y++) {
+        const t = (y - groundY) / (h - groundY)
+        const r = Math.floor(90 + (120 - 90) * t)
+        const gC = Math.floor(140 + (95 - 140) * t)
+        const b = Math.floor(70 + (55 - 70) * t)
+        g.fillStyle(Phaser.Display.Color.GetColor(r, gC, b), 1)
+        g.fillRect(0, y, w, 1)
+      }
+      g.fillStyle(0xc8a868, 0.6)
+      g.fillRect(0, groundY, w, 2)
+      g.fillStyle(0xb89858, 0.3)
+      g.fillRect(0, groundY + 2, w, 3)
+      for (let i = 0; i < 18; i++) {
+        const px = Math.random() * w
+        const py = groundY + 10 + Math.random() * (h - groundY - 10)
+        const psize = 8 + Math.random() * 20
+        g.fillStyle(0x6b4a2e, 0.15 + Math.random() * 0.15)
+        g.fillEllipse(px, py, psize, psize * 0.4)
+      }
+      for (let i = 0; i < 12; i++) {
+        const px = w * 0.4 + Math.random() * w * 0.5
+        const py = groundY + 5 + Math.random() * (h - groundY - 5)
+        g.fillStyle(0xd4b078, 0.12)
+        g.fillEllipse(px, py, 30 + Math.random() * 40, 6 + Math.random() * 8)
+      }
+      g.setDepth(-5)
     }
 
+    // Lush depth-aware grass with golden tips
     private drawGrass(w: number, h: number) {
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 90; i++) {
         const gx = Math.random() * w
-        const gy = h * 0.6 + Math.random() * 12
+        const gy = h * 0.66 + Math.random() * (h * 0.32)
+        const depth = (gy - h * 0.66) / (h * 0.32)
         const blade = this.add.graphics()
-        const shade = Math.random() > 0.5 ? 0x2E7D32 : 0x4CAF50
-        blade.lineStyle(1.5, shade, 0.5)
+        const height = 6 + depth * 14 + Math.random() * 6
+        const shade = Math.random()
+        let color: number
+        if (shade < 0.33) color = 0x2E7D32
+        else if (shade < 0.66) color = 0x4CAF50
+        else color = 0x6BB66E
+        blade.lineStyle(1.5 + depth, color, 0.4 + depth * 0.4)
         blade.beginPath()
         blade.moveTo(gx, gy)
-        blade.lineTo(gx + (Math.random() - 0.5) * 3, gy - 8 - Math.random() * 8)
+        const sway = (Math.random() - 0.5) * 6
+        blade.lineTo(gx + sway, gy - height)
         blade.strokePath()
-        blade.setDepth(-1)
-        this.tweens.add({ targets: blade, angle: { from: -2, to: 2 }, duration: 1200 + Math.random() * 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+        if (Math.random() > 0.5) {
+          blade.fillStyle(0xe8c878, 0.5)
+          blade.fillCircle(gx + sway, gy - height, 1)
+        }
+        blade.setDepth(-2 + depth * 2)
+        this.tweens.add({
+          targets: blade,
+          angle: { from: -3, to: 3 },
+          duration: 1200 + Math.random() * 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        })
       }
     }
 
+    // Detailed trees with warm rim lighting on the sunlit side
     private drawTrees(w: number, h: number) {
       const positions = [
         { x: w * 0.04, y: h * 0.5, s: 1.1 },
         { x: w * 0.96, y: h * 0.48, s: 1.2 },
         { x: w * 0.15, y: h * 0.53, s: 0.7 },
         { x: w * 0.85, y: h * 0.54, s: 0.65 },
+        { x: w * 0.3, y: h * 0.56, s: 0.5 },
+        { x: w * 0.7, y: h * 0.57, s: 0.55 },
       ]
       positions.forEach((tp) => {
         const t = this.add.graphics()
         const trunkW = 6 * tp.s
-        const trunkH = 28 * tp.s
-        t.fillStyle(0x5D4037, 1)
+        const trunkH = 32 * tp.s
+        t.fillStyle(0x4a2f1e, 1)
         t.fillRoundedRect(tp.x - trunkW / 2, tp.y, trunkW, trunkH, 2)
-        t.fillStyle(0x2E7D32, 1)
-        t.fillEllipse(tp.x, tp.y - 5 * tp.s, 38 * tp.s, 34 * tp.s)
-        t.fillStyle(0x4CAF50, 1)
-        t.fillEllipse(tp.x + 7 * tp.s, tp.y - 10 * tp.s, 24 * tp.s, 20 * tp.s)
+        t.fillStyle(0x6b4a2e, 0.5)
+        t.fillRect(tp.x - trunkW / 2, tp.y, 2, trunkH)
+        t.fillStyle(0x1b5e20, 1)
+        t.fillEllipse(tp.x, tp.y - 4 * tp.s, 42 * tp.s, 38 * tp.s)
+        t.fillStyle(0x2e7d32, 1)
+        t.fillEllipse(tp.x + 6 * tp.s, tp.y - 10 * tp.s, 28 * tp.s, 24 * tp.s)
+        t.fillStyle(0x388e3c, 0.9)
+        t.fillEllipse(tp.x - 8 * tp.s, tp.y - 8 * tp.s, 22 * tp.s, 20 * tp.s)
+        t.fillStyle(0xc8a050, 0.35)
+        t.fillEllipse(tp.x + 12 * tp.s, tp.y - 8 * tp.s, 18 * tp.s, 16 * tp.s)
+        t.fillStyle(0xe8c878, 0.25)
+        t.fillEllipse(tp.x + 14 * tp.s, tp.y - 12 * tp.s, 10 * tp.s, 8 * tp.s)
         t.setDepth(-3)
       })
+    }
+
+    // Calm reflective lake at the base of the near hills
+    private drawLake(w: number, h: number) {
+      const lake = this.add.graphics()
+      const lakeY = h * 0.615
+      const lakeH = h * 0.045
+      for (let y = 0; y < lakeH; y++) {
+        const t = y / lakeH
+        const r = Math.floor(120 - 50 * t)
+        const g = Math.floor(100 - 30 * t)
+        const b = Math.floor(90 - 20 * t)
+        lake.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 0.9)
+        lake.fillRect(0, lakeY + y, w, 1)
+      }
+      const refl = this.add.graphics().setDepth(-7)
+      refl.fillStyle(0xffd089, 0.25)
+      refl.fillRect(0, lakeY, w, lakeH * 0.4)
+      refl.fillStyle(0xffe8b0, 0.15)
+      refl.fillRect(0, lakeY, w, lakeH * 0.2)
+      const shimmer = this.add.graphics().setDepth(-6)
+      shimmer.fillStyle(0xfff0c8, 0.5)
+      shimmer.fillEllipse(w * 0.72, lakeY + lakeH * 0.4, 100, 4)
+      shimmer.fillStyle(0xfffbe8, 0.3)
+      shimmer.fillEllipse(w * 0.72, lakeY + lakeH * 0.4, 50, 2)
+      this.tweens.add({
+        targets: shimmer,
+        scaleX: { from: 0.9, to: 1.15 },
+        alpha: { from: 0.6, to: 1 },
+        duration: 2500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+      lake.setDepth(-7)
+    }
+
+    // Warm cinematic color-grade overlay tying all layers together
+    private drawColorGrade(w: number, h: number) {
+      const grade = this.add.graphics().setDepth(-1)
+      grade.fillStyle(0xff9050, 0.06)
+      grade.fillRect(0, 0, w, h)
+      const vig = this.add.graphics().setDepth(0)
+      for (let i = 0; i < 8; i++) {
+        const alpha = 0.015 * (i + 1)
+        vig.fillStyle(0x000000, alpha)
+        vig.fillRect(0, 0, w, 4 + i * 3)
+        vig.fillRect(0, h - 4 - i * 3, w, 4 + i * 3)
+        vig.fillRect(0, 0, 4 + i * 3, h)
+        vig.fillRect(w - 4 - i * 3, 0, 4 + i * 3, h)
+      }
     }
 
     private drawSpotlights(w: number, h: number) {
