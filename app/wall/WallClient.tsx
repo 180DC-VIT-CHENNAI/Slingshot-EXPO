@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import FloatingWall from '@/components/SpeechBubble'
 import { AudioManager } from '@/components/AudioManager'
@@ -82,18 +83,18 @@ export default function WallClient() {
         <FloatingWall totalPlayers={totalPlayers} />
 
         <div className={`absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 z-20 flex gap-2 sm:gap-3 transition-all duration-300 ${hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <a
+          <Link
             href="/play"
             className="flex-1 btn-primary text-center text-xs sm:text-sm py-2 sm:py-3"
           >
             PLAY
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
             className="btn-secondary text-xs sm:text-sm py-2 sm:py-3 px-4 sm:px-5"
           >
             HOME
-          </a>
+          </Link>
         </div>
       </div>
     </AudioManager>
