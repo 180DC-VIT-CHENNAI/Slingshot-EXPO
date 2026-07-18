@@ -177,7 +177,7 @@ export default function ResultScreen({
                   rel="noopener noreferrer"
                   className="w-full btn-secondary text-sm py-3.5 block text-center"
                 >
-                  VISIT 180DC
+                  VISIT 180DC VIT CHENNAI
                 </a>
                 <a
                   href="/wall"
@@ -238,7 +238,7 @@ export default function ResultScreen({
                 rel="noopener noreferrer"
                 className="w-full btn-secondary text-sm py-3.5 block text-center"
               >
-                VISIT 180DC
+                VISIT 180DC VIT CHENNAI
               </a>
               <a
                 href="/wall"
