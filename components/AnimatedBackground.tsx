@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 
-export default function AnimatedBackground() {
+export default function AnimatedBackground({ active = true }: { active?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const activeRef = useRef(active)
+  useEffect(() => { activeRef.current = active }, [active])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -44,6 +46,9 @@ export default function AnimatedBackground() {
     }
 
     function animate() {
+      animId = requestAnimationFrame(animate)
+      if (!activeRef.current) return
+
       context.clearRect(0, 0, w, h)
 
       for (let i = 0; i < particles.length; i++) {
@@ -74,8 +79,6 @@ export default function AnimatedBackground() {
         context.fillStyle = `rgba(255, 255, 255, ${p.opacity})`
         context.fill()
       })
-
-      animId = requestAnimationFrame(animate)
     }
 
     animate()

@@ -2,14 +2,19 @@
 
 import { useEffect, useRef } from 'react'
 import * as Phaser from 'phaser'
+import { useAudio, type SoundName } from '@/components/AudioManager'
 
 interface GameProps {
-  onResult: (hit: boolean) => void
+  onResult: (hit: boolean, distance: number) => void
 }
 
 export default function GameCanvas({ onResult }: GameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
+  const { play } = useAudio()
+  // Keep latest play in a ref so the scene (created once) always calls the current closure
+  const playRef = useRef(play)
+  useEffect(() => { playRef.current = play }, [play])
 
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return
@@ -23,7 +28,7 @@ export default function GameCanvas({ onResult }: GameProps) {
       width: w,
       height: h,
       backgroundColor: '#000000',
-      scene: createScene(onResult, w, h),
+      scene: createScene(onResult, (n: SoundName) => playRef.current(n)),
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -50,7 +55,7 @@ export default function GameCanvas({ onResult }: GameProps) {
   )
 }
 
-function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
+function createScene(onResult: (hit: boolean, distance: number) => void, play: (name: SoundName) => void) {
   return class extends Phaser.Scene {
     private zero!: Phaser.GameObjects.Container
     private slotX = 0
@@ -80,7 +85,8 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
     private powerBarBg!: Phaser.GameObjects.Graphics
     private powerBarText!: Phaser.GameObjects.Text
     private currentPull = 0
-    private cameraTargetZoom = 1
+    private lastHitDistance = 0
+    private scoredHit = false
 
     constructor() { super('MainGame') }
 
@@ -581,6 +587,11 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
     }
 
     private onPointerDown(pointer: Phaser.Input.Pointer) {
+      if (this.hasScored) {
+        this.time.removeAllEvents()
+        onResult(this.scoredHit, this.lastHitDistance)
+        return
+      }
       if (!this.canDrag || this.hasLaunched) return
       const dx = pointer.x - this.zero.x
       const dy = pointer.y - this.zero.y
@@ -600,8 +611,6 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
 
       const pullFactor = dist / maxPull
       this.currentPull = pullFactor
-
-      this.cameraTargetZoom = 1 + pullFactor * 0.05
 
       const stretchX = 1 - pullFactor * 0.18
       const stretchY = 1 + pullFactor * 0.15
@@ -669,7 +678,8 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       this.trajectoryDots.forEach((d) => d.destroy())
       this.trajectoryDots = []
       this.updatePowerBar(0)
-      this.cameraTargetZoom = 1
+
+      play('launch')
 
       const dx = this.zero.x - this.zeroStartX
       const dy = this.zero.y - this.zeroStartY
@@ -698,13 +708,6 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
 
     update() {
       if (!this.hasLaunched || this.hasScored) return
-
-      const cam = this.cameras.main
-      const currentZoom = cam.zoom
-      const targetZoom = this.cameraTargetZoom
-      if (Math.abs(currentZoom - targetZoom) > 0.001) {
-        cam.setZoom(currentZoom + (targetZoom - currentZoom) * 0.1)
-      }
 
       this.zero.x += this.vx
       this.zero.y += this.vy
@@ -740,7 +743,7 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       })
 
       if (dist < this.hitZone && this.vy > 0) {
-        this.onHit()
+        this.onHit(dist)
         return
       }
 
@@ -752,10 +755,14 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       }
     }
 
-    private onHit() {
+    private onHit(hitDistance: number) {
       this.hasScored = true
+      this.scoredHit = true
+      this.lastHitDistance = hitDistance
       this.vx = 0
       this.vy = 0
+
+      play('hit')
 
       this.trailDots.forEach((d) => d.destroy())
       this.trailDots = []
@@ -776,7 +783,7 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
 
       this.tweens.add({
         targets: this.slotGlow,
-        alpha: 2.5,
+        alpha: 1,
         scaleX: 2.5,
         scaleY: 2.5,
         duration: 500,
@@ -809,13 +816,17 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
         },
       })
 
-      this.time.delayedCall(2200, () => onResult(true))
+      this.time.delayedCall(2200, () => onResult(true, hitDistance))
     }
 
     private onMiss() {
       this.hasScored = true
+      this.scoredHit = false
+      this.lastHitDistance = 0
       this.vx = 0
       this.vy = 0
+
+      play('miss')
 
       this.trailDots.forEach((d) => d.destroy())
       this.trailDots = []
@@ -825,128 +836,58 @@ function createScene(onResult: (hit: boolean) => void, _W: number, _H: number) {
       const cx = w / 2
       const cy = h / 2
 
-      this.cameras.main.shake(400, 0.02)
+      this.cameras.main.shake(300, 0.02)
 
-      const overlay1 = this.add.rectangle(cx, cy, w, h, 0x000000, 0).setDepth(200)
-      const overlay2 = this.add.rectangle(cx, cy, w, h, 0x000000, 0).setDepth(202)
-
+      const overlay = this.add.rectangle(cx, cy, w, h, 0x000000, 0).setDepth(200)
       this.tweens.add({
-        targets: overlay1,
-        alpha: 0.6,
-        duration: 600,
+        targets: overlay,
+        alpha: 0.85,
+        duration: 400,
         ease: 'Power2',
-        onComplete: () => {
-          this.tweens.add({
-            targets: overlay1,
-            alpha: 1,
-            duration: 400,
-            ease: 'Power3',
-          })
-        },
       })
 
-      const rings: Phaser.GameObjects.Graphics[] = []
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 2; i++) {
         const ring = this.add.graphics().setDepth(201)
         ring.lineStyle(3 - i * 0.5, 0x7CFC00, 0.6)
         ring.strokeCircle(cx, cy, 10)
         ring.setAlpha(0)
-        rings.push(ring)
-
         this.tweens.add({
           targets: ring,
           alpha: 0.7,
           duration: 200,
-          delay: i * 200,
+          delay: i * 150,
           yoyo: true,
-          hold: 100,
+          hold: 80,
         })
         this.tweens.add({
           targets: ring,
-          scaleX: 15 + i * 3,
-          scaleY: 15 + i * 3,
-          duration: 800,
-          delay: i * 200,
+          scaleX: 12 + i * 3,
+          scaleY: 12 + i * 3,
+          duration: 700,
+          delay: i * 150,
           ease: 'Power2',
         })
       }
 
-      const dots: Phaser.GameObjects.Arc[] = []
-      for (let i = 0; i < 16; i++) {
-        const angle = (i / 16) * Math.PI * 2
-        const radius = Math.min(w, h) * 0.45
-        const dot = this.add.circle(
-          cx + Math.cos(angle) * radius,
-          cy + Math.sin(angle) * radius,
-          5 + Math.random() * 5,
-          i % 2 === 0 ? 0x7CFC00 : 0x2E7D32,
-          0.9
-        ).setDepth(203)
-        dots.push(dot)
+      const missText = this.add.text(cx, cy, 'MISS', {
+        fontSize: '56px',
+        color: '#ffffff',
+        fontFamily: 'Poppins, sans-serif',
+        fontStyle: 'bold',
+        stroke: '#7CFC00',
+        strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(202).setAlpha(0).setScale(0.5)
 
-        this.tweens.add({
-          targets: dot,
-          x: cx,
-          y: cy,
-          alpha: 0,
-          scaleX: 0.1,
-          scaleY: 0.1,
-          duration: 900 + i * 40,
-          ease: 'Quad.easeIn',
-        })
-      }
-
-      this.time.delayedCall(1100, () => {
-        overlay2.setAlpha(0)
-        this.tweens.add({
-          targets: overlay2,
-          alpha: 1,
-          duration: 500,
-          ease: 'Power2',
-          onComplete: () => {
-            rings.forEach((r) => r.destroy())
-            dots.forEach((d) => d.destroy())
-            overlay1.destroy()
-            overlay2.destroy()
-            this.cameras.main.setBackgroundColor('#000000')
-            this.children.removeAll(true)
-
-            const endText = this.add.text(cx, cy - 50, 'THE END', {
-              fontSize: '72px',
-              color: '#ffffff',
-              fontFamily: 'Poppins, sans-serif',
-              fontStyle: 'bold',
-              stroke: '#7CFC00',
-              strokeThickness: 6,
-            }).setOrigin(0.5).setDepth(200).setAlpha(0).setScale(3)
-
-            const subText = this.add.text(cx, cy + 25, 'that 0 was not the one...', {
-              fontSize: '18px',
-              color: '#aaaaaa',
-              fontFamily: 'Poppins, sans-serif',
-            }).setOrigin(0.5).setDepth(200).setAlpha(0)
-
-            this.tweens.add({
-              targets: endText,
-              alpha: 1,
-              scaleX: 1,
-              scaleY: 1,
-              y: cy - 60,
-              duration: 900,
-              ease: 'Back.easeOut',
-            })
-
-            this.tweens.add({
-              targets: subText,
-              alpha: 0.7,
-              duration: 700,
-              delay: 500,
-            })
-
-            this.time.delayedCall(2200, () => onResult(false))
-          },
-        })
+      this.tweens.add({
+        targets: missText,
+        alpha: 0.9,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
       })
+
+      this.time.delayedCall(1200, () => onResult(false, 0))
     }
 
     private spawnHitParticles() {

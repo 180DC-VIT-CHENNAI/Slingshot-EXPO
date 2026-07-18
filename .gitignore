@@ -54,3 +54,23 @@ prisma/*.db
 # OS
 Thumbs.db
 Desktop.ini
+
+# OpenCode session files
+.omo/
+
+# Playwright testing artifacts
+.playwright-mcp/
+
+# Design reference / testing screenshots
+target.jpeg
+target.png
+Pasted image.png
+*-screenshot.jpeg
+after-launch.jpeg
+local-play.jpeg
+play-page.jpeg
+play-state.jpeg
+wall-page.jpeg
+
+# Mobile app (Expo redesign - work in progress)
+/mobile/

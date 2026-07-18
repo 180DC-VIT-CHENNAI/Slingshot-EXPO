@@ -28,10 +28,6 @@ body {
   width: 100%;
 }
 
-#__next {
-  height: 100%;
-}
-
 @layer components {
   .btn-primary {
     @apply font-display font-bold rounded-2xl px-8 py-4 text-lg
@@ -128,3 +124,8 @@ body {
 .animate-scale-in { animation: scale-in 0.5s ease-out forwards; }
 .animate-count-bounce { animation: count-up-bounce 0.4s ease-out forwards; }
 .animate-plus-one { animation: plus-one 1.5s ease-out forwards; }
+
+@keyframes bubble-wobble {
+  0% { transform: rotate(-10deg); }
+  100% { transform: rotate(10deg); }
+}

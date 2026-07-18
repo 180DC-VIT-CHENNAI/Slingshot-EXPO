@@ -12,6 +12,9 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
   },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  },
   "dependencies": {
     "next": "15.5.20",
     "react": "^19.0.0",
