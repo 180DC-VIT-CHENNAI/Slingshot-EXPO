@@ -6,7 +6,7 @@ import { useAudio, type SoundName } from '@/components/AudioManager'
 import { getMissionConfig, createMissionScene } from '@/lib/missions'
 
 interface GameProps {
-  onResult: (hit: boolean, distance: number) => void
+  onResult: (hit: boolean, score: number) => void
   levelId?: number
 }
 

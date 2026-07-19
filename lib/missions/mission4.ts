@@ -1,6 +1,14 @@
 import * as Phaser from 'phaser'
 import type { MissionConfig, MissionUpdate } from './core'
 
+const QUESTIONS = [
+  'Which strategy best drives business growth?',
+  'Which approach creates the most sustainable competitive advantage?',
+  'What is the most impactful strategic initiative?',
+  'Which direction should the company prioritize?',
+  'What strategy delivers the highest long-term value?',
+]
+
 const STRATEGIES = [
   { label: 'Expand\nMarket', icon: '📈', color: 0x4CAF50 },
   { label: 'Reduce\nCost', icon: '✂️', color: 0x2196F3 },
@@ -152,7 +160,7 @@ export const mission4Config: MissionConfig = {
     qBg.lineStyle(1, 0xFFD700, 0.4)
     qBg.strokeRoundedRect(w * 0.08, h * 0.01, w * 0.84, h * 0.06, 8)
 
-    scene.add.text(w / 2, h * 0.04, 'Which strategy best drives business growth?', {
+    scene.add.text(w / 2, h * 0.04, QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)], {
       fontSize: `${Math.max(12, Math.min(16, w * 0.035))}px`,
       color: '#FFD700',
       fontFamily: 'Poppins, sans-serif',
@@ -311,6 +319,7 @@ export const mission4Config: MissionConfig = {
       cards,
       correctIdx,
       shotFired: false,
+      answeredCorrectly: false,
       glowTween,
     }
   },
@@ -340,6 +349,7 @@ export const mission4Config: MissionConfig = {
     targets.shotFired = true
 
     if (hitIdx >= 0 && targets.cards[hitIdx].isCorrect) {
+      targets.answeredCorrectly = true
       const card = targets.cards[hitIdx]
       card.destroyed = true
       if (card.floatTween) card.floatTween.remove()
@@ -562,6 +572,6 @@ export const mission4Config: MissionConfig = {
   },
 
   getScore(targets: any): number {
-    return targets.shotFired ? 0 : 0
+    return targets.answeredCorrectly ? 100 : 0
   },
 }

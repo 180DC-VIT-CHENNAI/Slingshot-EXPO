@@ -5,19 +5,34 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const topSessions = await prisma.session.findMany({
-      take: 20,
-      orderBy: { score: 'desc' },
+    const allSessions = await prisma.session.findMany({
       include: { player: true },
+      orderBy: { score: 'desc' },
     })
 
-    const leaderboard = topSessions.map((s, idx) => ({
-      rank: idx + 1,
-      name: s.player.name,
-      score: s.score,
-      comment: s.comment,
-      createdAt: s.createdAt,
-    }))
+    const bestByPlayer = new Map<string, { name: string; score: number; comment: string; createdAt: Date }>()
+    for (const s of allSessions) {
+      const existing = bestByPlayer.get(s.playerId)
+      if (!existing || s.score > existing.score) {
+        bestByPlayer.set(s.playerId, {
+          name: s.player.name,
+          score: s.score,
+          comment: s.comment,
+          createdAt: s.createdAt,
+        })
+      }
+    }
+
+    const leaderboard = Array.from(bestByPlayer.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20)
+      .map((entry, idx) => ({
+        rank: idx + 1,
+        name: entry.name,
+        score: entry.score,
+        comment: entry.comment,
+        createdAt: entry.createdAt,
+      }))
 
     return NextResponse.json({ leaderboard })
   } catch (error) {

@@ -7,7 +7,6 @@ import ResultScreen from '@/components/ResultScreen'
 import NameModal from '@/components/NameModal'
 import CampaignScreen from '@/components/CampaignScreen'
 import { getRandomHitMessage, getRandomMissMessage } from '@/lib/messages'
-import { calculateScore } from '@/lib/utils'
 import {
   MISSIONS,
   loadProgress,
@@ -34,7 +33,6 @@ function PlayContent() {
   const [earnedStars, setEarnedStars] = useState(0)
   const [progress, setProgress] = useState<CampaignProgress>(loadProgress())
   const gameKey = useRef(0)
-  const lastDistanceRef = useRef(0)
 
   const mission = MISSIONS.find(m => m.id === currentLevelId) ?? MISSIONS[0]
 
@@ -44,19 +42,17 @@ function PlayContent() {
     setScreen('playing')
   }, [])
 
-  const handleResult = useCallback((hit: boolean, distance: number) => {
+  const handleResult = useCallback((hit: boolean, score: number) => {
     setIsHit(hit)
     if (hit) {
-      lastDistanceRef.current = distance
-      const s = calculateScore(distance)
-      setScore(s)
-      setEarnedStars(calculateStars(s, true))
+      setScore(score)
+      setEarnedStars(calculateStars(score, true))
 
       const p = loadProgress()
       if (!p.playerName && currentLevelId === 1) {
         setScreen('name')
       } else {
-        updateLevelResult(currentLevelId, calculateStars(s, true), s)
+        updateLevelResult(currentLevelId, calculateStars(score, true), score)
         setProgress(loadProgress())
         setMessage(getRandomHitMessage())
         setScreen('result')
@@ -67,7 +63,7 @@ function PlayContent() {
           fetch('/api/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: updated.playerName, distance, score: totalScore }),
+            body: JSON.stringify({ name: updated.playerName, score: totalScore }),
           }).catch(() => {})
         }
       }

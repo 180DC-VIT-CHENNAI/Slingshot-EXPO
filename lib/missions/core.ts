@@ -53,7 +53,7 @@ const STALL_TIMEOUT = 2500
 export function createMissionScene(
   config: MissionConfig,
   play: (name: SoundName) => void,
-  onResult: (hit: boolean, distance: number) => void,
+  onResult: (hit: boolean, score: number) => void,
 ) {
   return class MissionScene extends Phaser.Scene {
     private missionConfig = config
@@ -83,7 +83,6 @@ export function createMissionScene(
     private hasLaunched = false
     private hasScored = false
     private scoredHit = false
-    private lastHitDistance = 0
 
     private vx = 0
     private vy = 0
@@ -178,6 +177,15 @@ export function createMissionScene(
         if (elapsed > STALL_TIMEOUT && Math.abs(this.vy) < 0.5) {
           this.handleMiss()
         }
+      }
+
+      if (config.multiShot && !this.hasScored && config.isComplete(this.targets)) {
+        this.hasScored = true
+        this.scoredHit = false
+        this.vx = 0
+        this.vy = 0
+        this.clearTrail()
+        onResult(true, config.getScore(this.targets))
       }
     }
 
@@ -442,7 +450,14 @@ export function createMissionScene(
       if (this.hasScored && !this.actionTakenThisRound) {
         this.actionTakenThisRound = true
         this.time.removeAllEvents()
-        onResult(this.scoredHit, this.lastHitDistance)
+
+        const wouldContinue = config.multiShotOnHit && !config.isComplete(this.targets)
+        if (wouldContinue) {
+          this.beginResetForNextShot()
+        } else {
+          const score = this.scoredHit ? config.getScore(this.targets) : 0
+          onResult(this.scoredHit, score)
+        }
         return
       }
 
@@ -636,7 +651,6 @@ export function createMissionScene(
         this, this.targets,
         this.projectile.x, this.projectile.y,
       )
-      this.lastHitDistance = hitResult.distance
 
       play('hit')
       this.clearTrail()
@@ -710,8 +724,9 @@ export function createMissionScene(
         })
       } else {
         this.time.delayedCall(POST_ACTION_DELAY, () => {
+          if (!this.hasScored) return
           this.time.removeAllEvents()
-          onResult(true, this.lastHitDistance)
+          onResult(true, config.getScore(this.targets))
         })
       }
     }
@@ -720,7 +735,6 @@ export function createMissionScene(
       if (this.hasScored) return
       this.hasScored = true
       this.scoredHit = false
-      this.lastHitDistance = 0
       this.shotsUsed++
       this.vx = 0
       this.vy = 0
@@ -811,12 +825,16 @@ export function createMissionScene(
       if (config.multiShot) {
         this.time.delayedCall(MISS_ACTION_DELAY, () => {
           this.time.removeAllEvents()
-          this.beginResetForNextShot()
+          if (config.isComplete(this.targets)) {
+            this.showMissionComplete()
+          } else {
+            this.beginResetForNextShot()
+          }
         })
       } else {
         this.time.delayedCall(MISS_ACTION_DELAY, () => {
           this.time.removeAllEvents()
-          onResult(true, 0)
+          onResult(true, config.getScore(this.targets))
         })
       }
     }
@@ -925,7 +943,7 @@ export function createMissionScene(
       this.time.delayedCall(POST_ACTION_DELAY + 500, () => {
         this.input.once('pointerdown', () => {
           this.time.removeAllEvents()
-          onResult(true, this.lastHitDistance)
+          onResult(true, config.getScore(this.targets))
         })
       })
     }

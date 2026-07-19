@@ -29,11 +29,16 @@ export async function POST(request: NextRequest) {
       : 0
     const comment = getRandomHitMessage()
 
-    console.log('[Session] Creating player:', trimmedName, 'score:', finalScore)
+    console.log('[Session] Creating/finding player:', trimmedName, 'score:', finalScore)
 
-    const player = await prisma.player.create({
-      data: { name: trimmedName },
+    let player = await prisma.player.findFirst({
+      where: { name: trimmedName },
     })
+    if (!player) {
+      player = await prisma.player.create({
+        data: { name: trimmedName },
+      })
+    }
 
     console.log('[Session] Player:', player.id)
 
