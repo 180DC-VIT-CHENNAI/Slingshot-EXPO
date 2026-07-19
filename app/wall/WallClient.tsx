@@ -29,7 +29,7 @@ export default function WallClient() {
 
   useEffect(() => {
     fetchCount()
-    const interval = setInterval(fetchCount, 5000)
+    const interval = setInterval(fetchCount, 10000)
     return () => clearInterval(interval)
   }, [fetchCount])
 

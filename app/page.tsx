@@ -48,19 +48,19 @@ export default function HomePage() {
                      border: '2px solid rgba(255,255,255,0.3)',
                      boxShadow: '0 4px 15px rgba(46, 125, 50, 0.5)',
                    }}>
-                0
+                →
               </div>
             </div>
           </div>
 
           <h1 className="font-display font-black text-4xl sm:text-5xl mb-4 leading-tight text-white">
-            Restore the
+            Pull the release.
             <br />
-            <span className="text-180dc-green-neon" style={{ textShadow: '0 0 20px rgba(124,252,0,0.6), 0 2px 4px rgba(0,0,0,0.3)' }}>Missing Zero</span>
+            <span className="text-180dc-green-neon" style={{ textShadow: '0 0 20px rgba(124,252,0,0.6), 0 2px 4px rgba(0,0,0,0.3)' }}>Reveal 180DC.</span>
           </h1>
 
           <p className="text-sm sm:text-base mb-12 max-w-xs mx-auto leading-relaxed text-white/70">
-            Slingshot the missing &quot;0&quot; back into the 180DC logo!
+            Send an arrow into the release board and uncover the identity.
           </p>
 
           <a

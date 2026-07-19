@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '180DC: Restore the Missing Zero',
-  description: 'Launch the missing zero into the 180DC logo using a slingshot! A fun interactive game for the 180DC Club Expo.',
+  title: '180DC: Reveal the Identity',
+  description: 'Hit the rope release with a slingshot arrow and uncover the 180DC identity in this interactive Club Expo game.',
   openGraph: {
-    title: '180DC: Restore the Missing Zero',
-    description: 'Launch the missing zero into the 180DC logo!',
+    title: '180DC: Reveal the Identity',
+    description: 'Take the shot. Break the release. Reveal 180DC.',
     type: 'website',
   },
 }

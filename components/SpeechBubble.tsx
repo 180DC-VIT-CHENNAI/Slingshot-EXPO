@@ -13,7 +13,7 @@ interface FloatingBubble extends BubbleData {
   x: number
   y: number
   rotation: number
-  vr: number
+  wobbleDuration: number
   scale: number
   targetScale: number
   opacity: number
@@ -75,9 +75,7 @@ function getMaxBubbles(): number {
 
 export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: number }) {
   const bubblesRef = useRef<FloatingBubble[]>([])
-  const renderCountRef = useRef(0)
   const [, forceRender] = useState(0)
-  const animRef = useRef<number>(0)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
@@ -112,7 +110,7 @@ export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: numb
             x: cx + (Math.random() - 0.5) * spreadX * 2,
             y: cy + (Math.random() - 0.5) * spreadY * 2,
             rotation: (Math.random() - 0.5) * 6,
-            vr: (Math.random() - 0.5) * 0.08,
+            wobbleDuration: 3 + Math.random() * 4,
             scale: 0,
             targetScale: 1,
             opacity: 0,
@@ -126,8 +124,7 @@ export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: numb
           bubblesRef.current = [...bubblesRef.current, ...newBubbles]
             .sort((a, b) => a.depth - b.depth)
             .slice(0, getMaxBubbles())
-          renderCountRef.current++
-          forceRender(renderCountRef.current)
+          forceRender((n) => n + 1)
         }
 
         if (!loaded) setLoaded(true)
@@ -137,7 +134,7 @@ export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: numb
     }
 
     fetchBubbles()
-    const interval = setInterval(fetchBubbles, 5000)
+    const interval = setInterval(fetchBubbles, 10000)
     return () => clearInterval(interval)
   }, [loaded])
 
@@ -146,63 +143,8 @@ export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: numb
     bubblesRef.current.forEach((b) => {
       b.targetScale = densityScale
     })
+    forceRender((n) => n + 1)
   }, [totalPlayers])
-
-  useEffect(() => {
-    if (!loaded) return
-
-    let lastTime = performance.now()
-
-    function animate(now: number) {
-      const dt = Math.min(now - lastTime, 50)
-      lastTime = now
-
-      const bubbles = bubblesRef.current
-      let needsRender = false
-
-      for (let i = 0; i < bubbles.length; i++) {
-        const b = bubbles[i]
-
-        const newScale = b.scale + (b.targetScale - b.scale) * 0.04
-        if (Math.abs(newScale - b.scale) > 0.0001) {
-          b.scale = newScale
-          needsRender = true
-        } else if (b.scale !== b.targetScale) {
-          b.scale = b.targetScale
-          needsRender = true
-        }
-
-        const newOpacity = b.opacity + (b.targetOpacity - b.opacity) * 0.04
-        if (Math.abs(newOpacity - b.opacity) > 0.0001) {
-          b.opacity = newOpacity
-          needsRender = true
-        } else if (b.opacity !== b.targetOpacity) {
-          b.opacity = b.targetOpacity
-          needsRender = true
-        }
-
-        let newRotation = b.rotation + b.vr * (dt / 16)
-        if (Math.abs(newRotation) > 10) {
-          b.vr *= -1
-          newRotation = b.rotation + b.vr * (dt / 16)
-        }
-        if (Math.abs(newRotation - b.rotation) > 0.001) {
-          b.rotation = newRotation
-          needsRender = true
-        }
-      }
-
-      if (needsRender) {
-        renderCountRef.current++
-        forceRender(renderCountRef.current)
-      }
-
-      animRef.current = requestAnimationFrame(animate)
-    }
-
-    animRef.current = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(animRef.current)
-  }, [loaded])
 
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 1 }}>
@@ -213,12 +155,15 @@ export default function FloatingWall({ totalPlayers = 0 }: { totalPlayers?: numb
           style={{
             left: b.x,
             top: b.y,
-            transform: `translate(-50%, -50%) scale(${b.scale}) rotate(${b.rotation}deg)`,
-            opacity: b.opacity,
+            transform: `translate(-50%, -50%) scale(${b.targetScale}) rotate(${b.rotation}deg)`,
+            opacity: b.targetOpacity,
+            transition: 'transform 0.8s ease-out, opacity 0.8s ease-out',
             willChange: 'transform, opacity',
           }}
         >
-          <CloudBubble name={b.name} comment={b.comment} size={b.size} />
+          <div style={{ animation: `bubble-wobble ${b.wobbleDuration}s ease-in-out infinite alternate` }}>
+            <CloudBubble name={b.name} comment={b.comment} size={b.size} />
+          </div>
         </div>
       ))}
 

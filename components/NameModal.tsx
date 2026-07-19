@@ -42,12 +42,12 @@ export default function NameModal({ onSubmit }: NameModalProps) {
            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }} />
       <div className={`relative glass-card p-8 mx-6 max-w-sm w-full transition-all duration-700 ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-90'}`}>
         <div className="text-center mb-6">
-          <div className="text-5xl mb-3 animate-scale-in">🎯</div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-180dc-green-neon/40 bg-180dc-green/20 text-2xl font-black text-180dc-green-neon animate-scale-in">✓</div>
           <h2 className="font-display font-bold text-xl text-white">
-            Bullseye!
+            Identity revealed!
           </h2>
           <p className="text-white/50 text-sm mt-2">
-            That 0 is exactly where it belongs.
+            The release worked. The 180DC mark is uncovered.
           </p>
           <p className="text-white/60 text-xs mt-2">
             Drop your name on the Wall of Consultants

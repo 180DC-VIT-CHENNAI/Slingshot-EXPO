@@ -6,6 +6,7 @@ interface ResultScreenProps {
   hit: boolean;
   message: string;
   playerName: string;
+  score: number;
   onPlayAgain: () => void;
 }
 
@@ -13,6 +14,7 @@ export default function ResultScreen({
   hit,
   message,
   playerName,
+  score,
   onPlayAgain,
 }: ResultScreenProps) {
   const [visible, setVisible] = useState(false);
@@ -49,9 +51,14 @@ export default function ResultScreen({
   useEffect(() => {
     if (!hit || !showSecondaryButtons) return;
     let current = 0;
-    const target = 100;
+    const target = Math.max(0, score);
+    if (target === 0) {
+      setCountUpScore(0);
+      return;
+    }
+    const step = Math.max(1, Math.ceil(target / 50));
     intervalRef.current = setInterval(() => {
-      current += 2;
+      current += step;
       if (current >= target) {
         current = target;
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -61,7 +68,7 @@ export default function ResultScreen({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [hit, showSecondaryButtons]);
+  }, [hit, showSecondaryButtons, score]);
 
   useEffect(() => {
     if (!hit || !showSecondaryButtons) return;

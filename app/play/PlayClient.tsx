@@ -5,6 +5,8 @@ import AnimatedBackground from '@/components/AnimatedBackground'
 import { AudioManager } from '@/components/AudioManager'
 import ResultScreen from '@/components/ResultScreen'
 import NameModal from '@/components/NameModal'
+import { getRandomHitMessage, getRandomMissMessage } from '@/lib/messages'
+import { calculateScore } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 
 const GameCanvas = dynamic(() => import('@/components/GameCanvas'), { ssr: false })
@@ -16,14 +18,18 @@ function PlayContent() {
   const [isHit, setIsHit] = useState(false)
   const [message, setMessage] = useState('')
   const [playerName, setPlayerName] = useState('')
+  const [score, setScore] = useState(0)
   const gameKey = useRef(0)
+  const lastDistanceRef = useRef(0)
 
-  const handleResult = useCallback((hit: boolean) => {
+  const handleResult = useCallback((hit: boolean, distance: number) => {
     setIsHit(hit)
     if (hit) {
+      lastDistanceRef.current = distance
+      setScore(calculateScore(distance))
       setGameState('name')
     } else {
-      const { getRandomMissMessage } = require('@/lib/messages')
+      setScore(0)
       setMessage(getRandomMissMessage())
       setGameState('result')
     }
@@ -31,9 +37,7 @@ function PlayContent() {
 
   const handleNameSubmit = useCallback(async (name: string) => {
     setPlayerName(name)
-    const { getRandomHitMessage } = require('@/lib/messages')
-    const hitMsg = getRandomHitMessage()
-    setMessage(hitMsg)
+    setMessage(getRandomHitMessage())
     setGameState('result')
 
     if (name) {
@@ -41,7 +45,7 @@ function PlayContent() {
         await fetch('/api/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, distance: lastDistanceRef.current }),
         })
       } catch (e) { console.error('Failed to save session:', e) }
     }
@@ -53,14 +57,23 @@ function PlayContent() {
     setIsHit(false)
     setMessage('')
     setPlayerName('')
+    setScore(0)
   }, [])
 
   return (
     <div className="fixed inset-0" style={{ zIndex: 10 }}>
-      <AnimatedBackground />
+      <AnimatedBackground active={gameState !== 'playing'} />
 
       {gameState === 'playing' && (
         <div className="fixed inset-0">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: 'url(/images/play-background.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
           <GameCanvas key={gameKey.current} onResult={handleResult} />
         </div>
       )}
@@ -74,6 +87,7 @@ function PlayContent() {
           hit={isHit}
           message={message}
           playerName={playerName}
+          score={score}
           onPlayAgain={handlePlayAgain}
         />
       )}
