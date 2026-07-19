@@ -60,6 +60,16 @@ function PlayContent() {
         setProgress(loadProgress())
         setMessage(getRandomHitMessage())
         setScreen('result')
+
+        const updated = loadProgress()
+        if (updated.playerName) {
+          const totalScore = Object.values(updated.levelScores).reduce((a, b) => a + b, 0)
+          fetch('/api/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: updated.playerName, distance, score: totalScore }),
+          }).catch(() => {})
+        }
       }
     } else {
       setScore(0)
@@ -79,10 +89,12 @@ function PlayContent() {
 
     if (name) {
       try {
+        const updated = loadProgress()
+        const totalScore = Object.values(updated.levelScores).reduce((a, b) => a + b, 0)
         await fetch('/api/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, distance: lastDistanceRef.current }),
+          body: JSON.stringify({ name, score: totalScore }),
         })
         const p = loadProgress()
         p.playerName = name

@@ -32,7 +32,7 @@ export const mission3Config: MissionConfig = {
   countdownColor: '#2196F3',
   multiShot: true,
   multiShotOnHit: true,
-  totalShots: 9,
+  totalShots: 6,
 
   drawEnvironment(scene, w, h) {
     const bg = scene.add.graphics()
@@ -157,7 +157,7 @@ export const mission3Config: MissionConfig = {
 
     const counter = scene.children.getByName('folderCounter') as Phaser.GameObjects.Text | null
     if (counter) {
-      counter.setText(`Collected: ${targets.collected} / ${targets.total}  |  Shots: ${targets.shotsUsed} / 9`)
+      counter.setText(`Collected: ${targets.collected} / ${targets.total}  |  Shots: ${targets.shotsUsed} / 6`)
     }
 
     for (const f of targets.folders) {
@@ -233,13 +233,13 @@ export const mission3Config: MissionConfig = {
   },
 
   isComplete(targets) {
-    return targets.collected >= targets.total || targets.shotsUsed >= 9
+    return targets.collected >= targets.total || targets.shotsUsed >= 6
   },
 
   getScore(targets) {
     if (targets.shotsUsed === 0) return 0
     const accuracy = targets.collected / targets.total
-    const shotBonus = Math.max(0, (9 - targets.shotsUsed) * 5)
+    const shotBonus = Math.max(0, (6 - targets.shotsUsed) * 5)
     return Math.min(100, Math.round(accuracy * 80 + shotBonus))
   },
 }

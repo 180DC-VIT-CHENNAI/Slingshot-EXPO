@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getRandomHitMessage } from '@/lib/messages'
-import { validateName, checkRateLimit, calculateScore } from '@/lib/utils'
+import { validateName, checkRateLimit } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, distance } = body
+    const { name, score } = body
 
     const trimmedName = (name || '').trim()
     if (trimmedName.length === 0) {
@@ -24,21 +24,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const dist = typeof distance === 'number' && isFinite(distance) && distance >= 0
-      ? distance
+    const finalScore = typeof score === 'number' && isFinite(score) && score >= 0
+      ? Math.round(score)
       : 0
-    const finalScore = calculateScore(dist)
     const comment = getRandomHitMessage()
 
-    console.log('[Session] Creating player:', trimmedName, 'distance:', dist, 'score:', finalScore)
+    console.log('[Session] Creating player:', trimmedName, 'score:', finalScore)
 
     const player = await prisma.player.create({
-      data: {
-        name: trimmedName,
-      },
+      data: { name: trimmedName },
     })
 
-    console.log('[Session] Player created:', player.id)
+    console.log('[Session] Player:', player.id)
 
     const session = await prisma.session.create({
       data: {

@@ -46,7 +46,7 @@ export interface MissionConfig {
 
 const TRAIL_MAX = 25
 const TRAIL_RADIUS = 4
-const POST_ACTION_DELAY = 1500
+const POST_ACTION_DELAY = 1000
 const MISS_ACTION_DELAY = 900
 const STALL_TIMEOUT = 2500
 
