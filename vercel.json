@@ -1,0 +1,11 @@
+{
+  "regions": ["bom1"],
+  "functions": {
+    "app/api/session/route.ts": {
+      "maxDuration": 15
+    },
+    "app/api/bubbles/route.ts": {
+      "maxDuration": 15
+    }
+  }
+}
