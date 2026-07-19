@@ -711,7 +711,7 @@ export function createMissionScene(
       } else {
         this.time.delayedCall(POST_ACTION_DELAY, () => {
           this.time.removeAllEvents()
-          onResult(hitResult.completed, this.lastHitDistance)
+          onResult(true, this.lastHitDistance)
         })
       }
     }
@@ -816,7 +816,7 @@ export function createMissionScene(
       } else {
         this.time.delayedCall(MISS_ACTION_DELAY, () => {
           this.time.removeAllEvents()
-          onResult(false, 0)
+          onResult(true, 0)
         })
       }
     }
@@ -834,6 +834,7 @@ export function createMissionScene(
           child !== this.dragHint &&
           child !== this.scoreText &&
           child !== this.shotsLeftText &&
+          !this.popupContainers.includes(child as Phaser.GameObjects.Container) &&
           (child as any).depth >= 100
         ) {
           child.destroy()
