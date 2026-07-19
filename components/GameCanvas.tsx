@@ -12,7 +12,6 @@ export default function GameCanvas({ onResult }: GameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const { play } = useAudio()
-  // Keep latest play in a ref so the scene (created once) always calls the current closure
   const playRef = useRef(play)
   useEffect(() => { playRef.current = play }, [play])
 
@@ -58,15 +57,16 @@ export default function GameCanvas({ onResult }: GameProps) {
 
 function createScene(onResult: (hit: boolean, distance: number) => void, play: (name: SoundName) => void) {
   return class extends Phaser.Scene {
-    private zero!: Phaser.GameObjects.Container
+    private arrow!: Phaser.GameObjects.Container
+    private arrowStartX = 0
+    private arrowStartY = 0
     private slotX = 0
     private slotY = 0
     private canDrag = false
     private isDragging = false
     private hasLaunched = false
     private hasScored = false
-    private zeroStartX = 0
-    private zeroStartY = 0
+    private isResetting = false
     private slingshotX = 0
     private slingshotY = 0
     private trajectoryDots: Phaser.GameObjects.GameObject[] = []
@@ -75,8 +75,6 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
     private vx = 0
     private vy = 0
     private gravity = 0.18
-    private zeroRotation = 0
-    private slotGlow!: Phaser.GameObjects.Graphics
     private hitZone = 70
     private trailDots: Phaser.GameObjects.Arc[] = []
     private rubberBand!: Phaser.GameObjects.Graphics
@@ -89,7 +87,20 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
     private lastHitDistance = 0
     private scoredHit = false
 
+    // Reveal scene objects
+    private cover!: Phaser.GameObjects.Container
+    private ropes: Phaser.GameObjects.Graphics[] = []
+    private targetContainer!: Phaser.GameObjects.Container
+    private logoGroup!: Phaser.GameObjects.Container
+    private releaseLine!: Phaser.GameObjects.Graphics
+    private instructionText!: Phaser.GameObjects.Text
+    private clothStrips: Phaser.GameObjects.Graphics[] = []
+
     constructor() { super('MainGame') }
+
+    preload() {
+      this.load.image('logo', '/images/logo.png')
+    }
 
     create() {
       const w = this.cameras.main.width
@@ -101,15 +112,17 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
 
       this.slingshotX = w / 2
       this.slingshotY = h - 100
-      this.slotX = w / 2
-      this.slotY = h * 0.12
+      this.slotX = w * 0.68
+      this.slotY = h * 0.30
 
-      this.drawSpotlights(w, h)
-      this.drawLogo(w, h)
+      this.drawLogoAndCover(w, h, isMobile)
+      this.drawRopes(w, h, isMobile)
+      this.drawRopeTarget(w, h, isMobile)
+      this.drawInstructions(w, h, isMobile)
       this.drawSlingshotBase()
       this.createPowerBar(w, h)
       this.rubberBand = this.add.graphics().setDepth(55)
-      this.createZero()
+      this.createArrow()
       this.dragLine = this.add.graphics().setDepth(50)
       this.createCountdown()
       this.startCountdown()
@@ -119,148 +132,241 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.input.on('pointerup', this.onPointerUp, this)
     }
 
-    private drawSpotlights(w: number, h: number) {
-      const tx = this.slotX
-      const ty = this.slotY
-      const spotY = h * 0.5
+    // ─── Logo + Fabric Cover ───
 
-      const spot1 = this.add.graphics().setDepth(-2)
-      spot1.fillStyle(0xffffff, 0.03)
-      spot1.fillTriangle(tx - 40, spotY, tx - 15, ty - 30, tx - 65, ty - 30)
+    private drawLogoAndCover(w: number, h: number, isMobile: boolean) {
+      const cx = w / 2
+      const logoY = Math.max(104, h * 0.18)
+      const s = isMobile ? 0.72 : Math.min(1.08, h / 760)
+      const markW = 330 * s
+      const markH = 132 * s
+
+      const logoGroup = this.add.container(cx, logoY).setDepth(5).setAlpha(0.96)
+      const halo = this.add.graphics()
+      halo.fillStyle(0x7cfc00, 0.08)
+      halo.fillEllipse(0, 2, markW + 90 * s, markH + 70 * s)
+      const plaque = this.add.graphics()
+      plaque.fillStyle(0xffffff, 0.96)
+      plaque.fillRoundedRect(-markW / 2, -markH / 2, markW, markH, 24 * s)
+      plaque.lineStyle(4 * s, 0x2e7d32, 0.9)
+      plaque.strokeRoundedRect(-markW / 2, -markH / 2, markW, markH, 24 * s)
+      const logoImg = this.add.image(-76 * s, 0, 'logo').setDisplaySize(92 * s, 88 * s)
+      const wordmark = this.add.text(50 * s, -5 * s, '180DC', {
+        fontSize: `${Math.round(48 * s)}px`,
+        color: '#1B5E20',
+        fontFamily: 'Poppins, sans-serif',
+        fontStyle: 'bold',
+      }).setOrigin(0.5)
+      const descriptor = this.add.text(50 * s, 34 * s, '180 DEGREES CONSULTING', {
+        fontSize: `${Math.round(9 * s)}px`,
+        color: '#2E7D32',
+        fontFamily: 'Poppins, sans-serif',
+        fontStyle: 'bold',
+        letterSpacing: 2.2 * s,
+      }).setOrigin(0.5)
+      logoGroup.add([halo, plaque, logoImg, wordmark, descriptor])
+      this.logoGroup = logoGroup
+
+      const coverW = markW + 28 * s
+      const coverH = markH + 30 * s
+      const cover = this.add.container(cx, logoY)
+      cover.setDepth(10)
+
+      const fabric = this.add.graphics()
+      fabric.fillStyle(0x111b2b, 1)
+      fabric.fillPoints([
+        { x: -coverW / 2, y: -coverH / 2 },
+        { x: coverW / 2, y: -coverH / 2 },
+        { x: coverW / 2 - 3 * s, y: coverH / 2 - 18 * s },
+        { x: coverW * 0.34, y: coverH / 2 - 4 * s },
+        { x: coverW * 0.22, y: coverH / 2 - 15 * s },
+        { x: coverW * 0.08, y: coverH / 2 },
+        { x: -coverW * 0.06, y: coverH / 2 - 9 * s },
+        { x: -coverW * 0.2, y: coverH / 2 - 1 * s },
+        { x: -coverW * 0.34, y: coverH / 2 - 17 * s },
+        { x: -coverW / 2 + 3 * s, y: coverH / 2 - 8 * s },
+      ], true)
+      const stripStops = [0, 0.11, 0.25, 0.36, 0.52, 0.66, 0.78, 0.91, 1] as const
+      const stripColors = [0x0b1320, 0x21324a, 0x17263b, 0x2a3d57, 0x17263b, 0x263850, 0x101b2b, 0x22344c] as const
+      const strips = stripColors.map((color, index) => {
+        const strip = this.add.graphics()
+        strip.fillStyle(color, 0.92)
+        const left = -coverW / 2 + stripStops[index] * coverW
+        const right = -coverW / 2 + stripStops[index + 1] * coverW
+        const stripW = right - left
+        const bottomLift = (index % 3) * 7 * s
+        strip.fillPoints([
+          { x: left, y: -coverH / 2 + 4 * s },
+          { x: right + 2 * s, y: -coverH / 2 + 4 * s },
+          { x: left + stripW * 0.88, y: coverH / 2 - 9 * s - bottomLift },
+          { x: left + stripW * 0.53, y: coverH / 2 - bottomLift },
+          { x: left + stripW * 0.1, y: coverH / 2 - 8 * s - bottomLift },
+        ], true)
+        strip.fillStyle(0xffffff, index % 2 === 0 ? 0.018 : 0.052)
+        strip.fillEllipse(left + stripW * 0.52, -3 * s, stripW * 0.62, coverH * 0.9)
+        return strip
+      })
+      this.clothStrips = strips
+
+      fabric.fillStyle(0x080d16, 0.72)
+      fabric.beginPath()
+      fabric.moveTo(-coverW / 2, -coverH / 2)
+      fabric.lineTo(coverW / 2, -coverH / 2)
+      fabric.lineTo(coverW / 2, -coverH / 2 + 7 * s)
+      fabric.lineTo(coverW * 0.25, -coverH / 2 + 17 * s)
+      fabric.lineTo(0, -coverH / 2 + 22 * s)
+      fabric.lineTo(-coverW * 0.25, -coverH / 2 + 17 * s)
+      fabric.lineTo(-coverW / 2, -coverH / 2 + 7 * s)
+      fabric.closePath()
+      fabric.fillPath()
+      fabric.lineStyle(3 * s, 0x050911, 0.6)
+      fabric.beginPath()
+      fabric.moveTo(-coverW / 2 + 6 * s, coverH / 2 - 11 * s)
+      fabric.lineTo(-coverW * 0.34, coverH / 2 - 19 * s)
+      fabric.lineTo(-coverW * 0.2, coverH / 2 - 3 * s)
+      fabric.lineTo(-coverW * 0.06, coverH / 2 - 11 * s)
+      fabric.lineTo(coverW * 0.08, coverH / 2 - 2 * s)
+      fabric.lineTo(coverW * 0.22, coverH / 2 - 17 * s)
+      fabric.lineTo(coverW * 0.34, coverH / 2 - 6 * s)
+      fabric.lineTo(coverW / 2 - 6 * s, coverH / 2 - 20 * s)
+      fabric.strokePath()
+      fabric.fillStyle(0xd4a76a, 0.9)
+      fabric.fillCircle(-coverW / 2 + 12 * s, -coverH / 2 + 8 * s, 4)
+      fabric.fillCircle(coverW / 2 - 12 * s, -coverH / 2 + 8 * s, 4)
+      fabric.fillStyle(0x352317, 1)
+      fabric.fillCircle(-coverW / 2 + 12 * s, -coverH / 2 + 8 * s, 2)
+      fabric.fillCircle(coverW / 2 - 12 * s, -coverH / 2 + 8 * s, 2)
+
+      cover.add([fabric, ...strips])
+
+      // Subtle sway
       this.tweens.add({
-        targets: spot1,
-        alpha: { from: 0.6, to: 1 },
-        duration: 2000,
+        targets: cover,
+        x: { from: cx - 2.5 * s, to: cx + 2.5 * s },
+        angle: { from: -0.35, to: 0.35 },
+        duration: 2600,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
       })
 
-      const spot2 = this.add.graphics().setDepth(-2)
-      spot2.fillStyle(0xffffff, 0.03)
-      spot2.fillTriangle(tx + 40, spotY, tx + 15, ty - 30, tx + 65, ty - 30)
+      this.cover = cover
+    }
+
+    // ─── Ropes ───
+
+    private drawRopes(w: number, h: number, isMobile: boolean) {
+      const cx = w / 2
+      const s = isMobile ? 0.72 : Math.min(1.08, h / 760)
+      const coverW = 358 * s
+      const coverH = 162 * s
+      const logoY = Math.max(104, h * 0.18)
+      const coverTopY = logoY - coverH / 2
+
+      const leftX = cx - coverW / 2 + 12 * s
+      const rightX = cx + coverW / 2 - 12 * s
+
+      // Left rope
+      const leftRope = this.add.graphics().setDepth(8)
+      leftRope.lineStyle(5 * s, 0x6f4a2d, 1)
+      leftRope.lineBetween(leftX, 0, leftX, coverTopY)
+      leftRope.lineStyle(1.4 * s, 0xd4a76a, 0.7)
+      leftRope.lineBetween(leftX - 1 * s, 0, leftX - 1 * s, coverTopY)
+
+      // Right rope
+      const rightRope = this.add.graphics().setDepth(8)
+      rightRope.lineStyle(5 * s, 0x6f4a2d, 1)
+      rightRope.lineBetween(rightX, 0, rightX, coverTopY)
+      rightRope.lineStyle(1.4 * s, 0xd4a76a, 0.7)
+      rightRope.lineBetween(rightX - 1 * s, 0, rightX - 1 * s, coverTopY)
+
+      this.ropes = [leftRope, rightRope]
+    }
+
+    // ─── Rope-Release Target ───
+
+    private drawRopeTarget(w: number, h: number, isMobile: boolean) {
+      const s = isMobile ? 0.78 : Math.min(1.08, h / 760)
+      const cx = w / 2
+      const logoY = Math.max(104, h * 0.18)
+      const coverW = 358 * (isMobile ? 0.72 : Math.min(1.08, h / 760))
+      const coverH = 162 * (isMobile ? 0.72 : Math.min(1.08, h / 760))
+      const rightX = cx + coverW / 2 - 12 * s
+      const coverBottomY = logoY + coverH / 2
+
+      const target = this.add.container(this.slotX, this.slotY)
+      target.setDepth(12)
+
+      // Connecting rope from cover to target
+      const ropeSeg = this.add.graphics()
+      ropeSeg.lineStyle(4 * s, 0x6f4a2d, 1)
+      ropeSeg.lineBetween(rightX - this.slotX, coverBottomY - this.slotY, 0, -25)
+      ropeSeg.lineStyle(1 * s, 0xd4a76a, 0.65)
+      ropeSeg.lineBetween(rightX - this.slotX - 1, coverBottomY - this.slotY, -1, -25)
+      this.releaseLine = ropeSeg
+
+      // Glowing aura
+      const glow = this.add.graphics()
+      glow.fillStyle(0x7cfc00, 0.14)
+      glow.fillCircle(0, 0, 54 * s)
       this.tweens.add({
-        targets: spot2,
-        alpha: { from: 0.6, to: 1 },
-        duration: 2000,
-        delay: 500,
+        targets: glow,
+        alpha: { from: 0.3, to: 0.8 },
+        scaleX: { from: 0.9, to: 1.2 },
+        scaleY: { from: 0.9, to: 1.2 },
+        duration: 800,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
       })
 
-      const spotGlow = this.add.graphics().setDepth(-1)
-      spotGlow.fillStyle(0x7CFC00, 0.05)
-      spotGlow.fillCircle(tx, ty, 80)
+      // Wooden board
+      const board = this.add.graphics()
+      board.fillStyle(0x70472a, 1)
+      board.fillRoundedRect(-38 * s, -30 * s, 76 * s, 60 * s, 7 * s)
+      board.lineStyle(3 * s, 0x3c2417, 1)
+      board.strokeRoundedRect(-38 * s, -30 * s, 76 * s, 60 * s, 7 * s)
+      board.fillStyle(0xd0a067, 0.2)
+      board.fillRect(-35 * s, -25 * s, 70 * s, 5 * s)
+
+      // Bullseye
+      board.fillStyle(0xffffff, 0.9)
+      board.fillCircle(0, -3 * s, 17 * s)
+      board.fillStyle(0x2e7d32, 1)
+      board.fillCircle(0, -3 * s, 12 * s)
+      board.fillStyle(0x7cfc00, 1)
+      board.fillCircle(0, -3 * s, 5 * s)
+      const label = this.add.text(0, 20 * s, 'RELEASE', {
+        fontSize: `${Math.round(8 * s)}px`, color: '#ffffff', fontFamily: 'Poppins, sans-serif',
+        fontStyle: 'bold', letterSpacing: 1.4 * s,
+      }).setOrigin(0.5)
+
+      target.add([ropeSeg, glow, board, label])
+
+      // Slight sway
       this.tweens.add({
-        targets: spotGlow,
-        alpha: { from: 0.3, to: 0.7 },
-        scaleX: { from: 0.9, to: 1.15 },
-        scaleY: { from: 0.9, to: 1.15 },
+        targets: target,
+        angle: { from: -3, to: 3 },
         duration: 2500,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
       })
+
+      this.targetContainer = target
     }
 
-    private drawLogo(w: number, h: number) {
-      const tx = this.slotX
-      const ty = this.slotY
-      const isMobile = Math.min(w, h) < 600
-      const s = isMobile ? 1.35 : 1
-
-      const outerGlow = this.add.graphics()
-      outerGlow.fillStyle(0xffffff, 0.08)
-      outerGlow.fillRoundedRect(tx - 165 * s, ty - 72 * s, 330 * s, 144 * s, 28)
-
-      const platform = this.add.graphics()
-      platform.fillStyle(0xffffff, 0.98)
-      platform.fillRoundedRect(tx - 148 * s, ty - 56 * s, 296 * s, 112 * s, 20)
-      platform.lineStyle(5, 0x2E7D32, 1)
-      platform.strokeRoundedRect(tx - 148 * s, ty - 56 * s, 296 * s, 112 * s, 20)
-
-      platform.fillStyle(0x2E7D32, 1)
-      platform.fillRoundedRect(tx - 142 * s, ty - 50 * s, 284 * s, 100 * s, 16)
-
-      this.add.text(tx - 72 * s, ty, '18', {
-        fontSize: `${Math.round(56 * s)}px`,
-        color: '#ffffff',
-        fontFamily: 'Poppins, sans-serif',
-        fontStyle: 'bold',
-      }).setOrigin(0.5)
-
-      this.add.text(tx + 72 * s, ty, 'DC', {
-        fontSize: `${Math.round(48 * s)}px`,
-        color: '#ffffff',
-        fontFamily: 'Poppins, sans-serif',
-        fontStyle: 'bold',
-      }).setOrigin(0.5)
-
-      const slotSize = 28 * s
-      const slotBg = this.add.graphics()
-      slotBg.fillStyle(0x1B5E20, 0.7)
-      slotBg.fillRoundedRect(tx - slotSize, ty - slotSize, slotSize * 2, slotSize * 2, 12 * s)
-      slotBg.lineStyle(Math.round(4 * s), 0x7CFC00, 0.6)
-      slotBg.strokeRoundedRect(tx - slotSize, ty - slotSize, slotSize * 2, slotSize * 2, 12 * s)
-
-      this.slotGlow = this.add.graphics()
-      this.slotGlow.fillStyle(0x7CFC00, 0.12)
-      this.slotGlow.fillCircle(tx + 2, ty, 44 * s)
-      this.tweens.add({
-        targets: this.slotGlow,
-        alpha: { from: 0.3, to: 1 },
-        scaleX: { from: 0.9, to: 1.1 },
-        scaleY: { from: 0.9, to: 1.1 },
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut',
-      })
-
-      if (isMobile) {
-        const pulseRing = this.add.graphics()
-        pulseRing.lineStyle(3, 0x7CFC00, 0.7)
-        pulseRing.strokeCircle(tx + 2, ty, 55)
-        pulseRing.setAlpha(0)
-        this.tweens.add({
-          targets: pulseRing,
-          alpha: { from: 0.8, to: 0 },
-          scaleX: { from: 1, to: 1.8 },
-          scaleY: { from: 1, to: 1.8 },
-          duration: 1200,
-          repeat: -1,
-          ease: 'Power2',
-        })
-
-        const outerRing = this.add.graphics()
-        outerRing.lineStyle(2, 0x7CFC00, 0.35)
-        outerRing.strokeCircle(tx + 2, ty, 70)
-        this.tweens.add({
-          targets: outerRing,
-          alpha: { from: 0.2, to: 0.6 },
-          duration: 1000,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-      }
-
-      this.add.text(tx + 2, ty, '?', {
-        fontSize: `${Math.round(32 * s)}px`,
-        color: '#7CFC00',
-        fontFamily: 'Poppins, sans-serif',
-        fontStyle: 'bold',
-      }).setOrigin(0.5).setAlpha(0.8)
-
-      const arrow = this.add.graphics()
-      arrow.fillStyle(0x7CFC00, 0.4)
-      arrow.fillTriangle(tx + 2, ty + 36 * s, tx - 8 * s, ty + 48 * s, tx + 12 * s, ty + 48 * s)
-      this.tweens.add({ targets: arrow, y: ty + 52 * s, duration: 600, yoyo: true, repeat: -1 })
-
-      this.slotX = tx + 2
-      this.slotY = ty
+    private drawInstructions(w: number, h: number, isMobile: boolean) {
+      const text = this.add.text(w / 2, Math.max(210, h * 0.36), 'HIT THE RELEASE  •  REVEAL THE IDENTITY', {
+        fontSize: `${isMobile ? 11 : 13}px`, color: '#ffffff', fontFamily: 'Poppins, sans-serif',
+        fontStyle: 'bold', letterSpacing: isMobile ? 1.2 : 2.2,
+        backgroundColor: '#0a1628cc', padding: { x: 12, y: 7 },
+      }).setOrigin(0.5).setDepth(20).setAlpha(0)
+      this.tweens.add({ targets: text, alpha: 0.78, duration: 500, delay: 1450 })
+      this.instructionText = text
     }
+
+    // ─── Slingshot ───
 
     private drawSlingshotBase() {
       const sg = this.add.graphics()
@@ -302,6 +408,8 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.slingshotForkLeft = { x: sx - 9.5, y: sy - 74 }
       this.slingshotForkRight = { x: sx + 9.5, y: sy - 74 }
     }
+
+    // ─── Power Bar ───
 
     private createPowerBar(w: number, h: number) {
       const barX = w / 2 - 55
@@ -376,47 +484,43 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.powerBarText.setColor(power > 0.7 ? '#ff5252' : '#ffffff')
     }
 
-    private createZero() {
-      const glow = this.add.graphics()
-      glow.fillStyle(0x7CFC00, 0.25)
-      glow.fillCircle(0, 0, 42)
+    // ─── Arrow Projectile ───
 
-      const outer = this.add.graphics()
-      outer.fillStyle(0x2E7D32, 1)
-      outer.fillCircle(0, 0, 30)
-      outer.lineStyle(5, 0xffffff, 1)
-      outer.strokeCircle(0, 0, 30)
+    private createArrow() {
+      const arrow = this.add.container(this.slingshotX, this.slingshotY - 78)
 
-      const inner = this.add.graphics()
-      inner.fillStyle(0x1B5E20, 1)
-      inner.fillCircle(0, 0, 18)
-      inner.lineStyle(3, 0x7CFC00, 0.6)
-      inner.strokeCircle(0, 0, 18)
+      // Shaft
+      const shaft = this.add.graphics()
+      shaft.fillStyle(0x6D4C41, 1)
+      shaft.fillRect(-1.5, -15, 3, 30)
+      shaft.fillStyle(0x5D4037, 0.5)
+      shaft.fillRect(-1.5, -15, 1, 30)
 
-      const t = this.add.text(0, 0, '0', {
-        fontSize: '36px',
-        color: '#ffffff',
-        fontFamily: 'Poppins, sans-serif',
-        fontStyle: 'bold',
-      }).setOrigin(0.5)
+      // Arrowhead
+      const head = this.add.graphics()
+      head.fillStyle(0xC0C0C0, 1)
+      head.fillTriangle(0, -28, -5, -15, 5, -15)
+      head.fillStyle(0x808080, 0.5)
+      head.fillTriangle(0, -28, -5, -15, 0, -15)
 
-      const shine = this.add.graphics()
-      shine.fillStyle(0xffffff, 0.4)
-      shine.fillCircle(-8, -10, 5)
+      // Fletching
+      const fletch = this.add.graphics()
+      fletch.fillStyle(0x7CFC00, 0.8)
+      fletch.fillTriangle(0, 15, -6, 24, 0, 24)
+      fletch.fillTriangle(0, 15, 6, 24, 0, 24)
+      fletch.fillStyle(0x2E7D32, 0.6)
+      fletch.fillTriangle(0, 15, -6, 24, -2, 20)
+      fletch.fillTriangle(0, 15, 6, 24, 2, 20)
 
-      this.zero = this.add.container(this.slingshotX, this.slingshotY - 78, [glow, outer, inner, shine, t])
-      this.zero.setDepth(60)
-      this.zeroStartX = this.zero.x
-      this.zeroStartY = this.zero.y
+      arrow.add([shaft, head, fletch])
+      arrow.setDepth(60)
 
-      this.tweens.add({
-        targets: glow,
-        alpha: { from: 0.5, to: 1 },
-        duration: 700,
-        yoyo: true,
-        repeat: -1,
-      })
+      this.arrow = arrow
+      this.arrowStartX = arrow.x
+      this.arrowStartY = arrow.y
     }
+
+    // ─── Countdown ───
 
     private createCountdown() {
       this.countdownText = this.add.text(
@@ -458,35 +562,33 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       this.time.delayedCall(300, showNext)
     }
 
+    // ─── Input Handlers ───
+
     private onPointerDown(pointer: Phaser.Input.Pointer) {
       if (this.hasScored) {
         this.time.removeAllEvents()
         onResult(this.scoredHit, this.lastHitDistance)
         return
       }
-      if (!this.canDrag || this.hasLaunched) return
-      const dx = pointer.x - this.zero.x
-      const dy = pointer.y - this.zero.y
+      if (this.isResetting || !this.canDrag || this.hasLaunched) return
+      const dx = pointer.x - this.arrow.x
+      const dy = pointer.y - this.arrow.y
       if (Math.sqrt(dx * dx + dy * dy) < 80) this.isDragging = true
     }
 
     private onPointerMove(pointer: Phaser.Input.Pointer) {
       if (!this.isDragging || this.hasLaunched) return
       const maxPull = 130
-      let dx = pointer.x - this.zeroStartX
-      let dy = pointer.y - this.zeroStartY
+      let dx = pointer.x - this.arrowStartX
+      let dy = pointer.y - this.arrowStartY
       const dist = Math.sqrt(dx * dx + dy * dy)
       if (dist > maxPull) { dx = (dx / dist) * maxPull; dy = (dy / dist) * maxPull }
 
-      this.zero.x = this.zeroStartX + dx
-      this.zero.y = this.zeroStartY + dy
+      this.arrow.x = this.arrowStartX + dx
+      this.arrow.y = this.arrowStartY + dy
 
       const pullFactor = dist / maxPull
       this.currentPull = pullFactor
-
-      const stretchX = 1 - pullFactor * 0.18
-      const stretchY = 1 + pullFactor * 0.15
-      this.zero.setScale(stretchX, stretchY)
 
       this.updatePowerBar(pullFactor)
 
@@ -494,24 +596,24 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       const fl = this.slingshotForkLeft
       const fr = this.slingshotForkRight
       this.rubberBand.lineStyle(6, 0x5D4037, 1)
-      this.rubberBand.lineBetween(fl.x, fl.y, this.zero.x - 10, this.zero.y - 10)
-      this.rubberBand.lineBetween(fr.x, fr.y, this.zero.x + 10, this.zero.y - 10)
+      this.rubberBand.lineBetween(fl.x, fl.y, this.arrow.x - 10, this.arrow.y - 10)
+      this.rubberBand.lineBetween(fr.x, fr.y, this.arrow.x + 10, this.arrow.y - 10)
       this.rubberBand.lineStyle(3, 0x8D6E63, 0.6)
-      this.rubberBand.lineBetween(fl.x, fl.y, this.zero.x - 10, this.zero.y - 10)
-      this.rubberBand.lineBetween(fr.x, fr.y, this.zero.x + 10, this.zero.y - 10)
+      this.rubberBand.lineBetween(fl.x, fl.y, this.arrow.x - 10, this.arrow.y - 10)
+      this.rubberBand.lineBetween(fr.x, fr.y, this.arrow.x + 10, this.arrow.y - 10)
 
       this.dragLine.clear()
 
       this.dragLine.lineStyle(4, 0xff5252, 0.9)
-      this.dragLine.lineBetween(this.zeroStartX, this.zeroStartY, this.zero.x, this.zero.y)
+      this.dragLine.lineBetween(this.arrowStartX, this.arrowStartY, this.arrow.x, this.arrow.y)
 
       this.dragLine.lineStyle(6, 0xffffff, 0.3)
-      this.dragLine.lineBetween(this.zeroStartX, this.zeroStartY, this.zero.x, this.zero.y)
+      this.dragLine.lineBetween(this.arrowStartX, this.arrowStartY, this.arrow.x, this.arrow.y)
 
       const arrowSize = 12
-      const ang = Math.atan2(this.zero.y - this.zeroStartY, this.zero.x - this.zeroStartX)
-      const tipX = this.zero.x + Math.cos(ang) * 5
-      const tipY = this.zero.y + Math.sin(ang) * 5
+      const ang = Math.atan2(this.arrow.y - this.arrowStartY, this.arrow.x - this.arrowStartX)
+      const tipX = this.arrow.x + Math.cos(ang) * 5
+      const tipY = this.arrow.y + Math.sin(ang) * 5
       this.dragLine.fillStyle(0xff5252, 0.9)
       this.dragLine.fillTriangle(
         tipX, tipY,
@@ -525,15 +627,15 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
     private drawTrajectory() {
       this.trajectoryDots.forEach((d) => d.destroy())
       this.trajectoryDots = []
-      const dx = this.zero.x - this.zeroStartX
-      const dy = this.zero.y - this.zeroStartY
+      const dx = this.arrow.x - this.arrowStartX
+      const dy = this.arrow.y - this.arrowStartY
       const power = (Math.min(this.cameras.main.width, this.cameras.main.height) < 600) ? 0.28 : 0.22
       const vx = -dx * power
       const vy = -dy * power
       for (let t = 0; t < 40; t++) {
         const time = t * 6
-        const px = this.zeroStartX + vx * (time / 16.67)
-        const py = this.zeroStartY + vy * (time / 16.67) + 0.5 * this.gravity * (time / 16.67) * (time / 16.67)
+        const px = this.arrowStartX + vx * (time / 16.67)
+        const py = this.arrowStartY + vy * (time / 16.67) + 0.5 * this.gravity * (time / 16.67) * (time / 16.67)
         const alpha = Math.max(0, 0.45 - t * 0.012)
         const dot = this.add.circle(px, py, 3, 0xff5252, alpha)
         this.trajectoryDots.push(dot)
@@ -553,14 +655,14 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
 
       play('launch')
 
-      const dx = this.zero.x - this.zeroStartX
-      const dy = this.zero.y - this.zeroStartY
+      const dx = this.arrow.x - this.arrowStartX
+      const dy = this.arrow.y - this.arrowStartY
       const power = (Math.min(this.cameras.main.width, this.cameras.main.height) < 600) ? 0.28 : 0.22
       this.vx = -dx * power
       this.vy = -dy * power
 
       this.tweens.add({
-        targets: this.zero,
+        targets: this.arrow,
         scaleX: 0.8,
         scaleY: 1.25,
         duration: 60,
@@ -569,7 +671,7 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       })
 
       this.tweens.add({
-        targets: this.zero,
+        targets: this.arrow,
         scaleX: 1,
         scaleY: 1,
         duration: 250,
@@ -578,33 +680,40 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
       })
     }
 
+    // ─── Physics Update ───
+
     update() {
       if (!this.hasLaunched || this.hasScored) return
 
-      this.zero.x += this.vx
-      this.zero.y += this.vy
+      this.arrow.x += this.vx
+      this.arrow.y += this.vy
       this.vy += this.gravity
-      this.zeroRotation += this.vx * 0.04
-      this.zero.angle = this.zeroRotation
 
-      const dx = this.zero.x - this.slotX
-      const dy = this.zero.y - this.slotY
+      // Arrow points in direction of travel
+      if (Math.abs(this.vx) > 0.1 || Math.abs(this.vy) > 0.1) {
+        this.arrow.angle = Math.atan2(this.vy, this.vx) * 180 / Math.PI + 90
+      }
+
+      const dx = this.arrow.x - this.slotX
+      const dy = this.arrow.y - this.slotY
       const dist = Math.sqrt(dx * dx + dy * dy)
 
+      // Pull mechanism toward target
       if (dist < 140 && this.vy > 0) {
         const pullStrength = Math.max(0, 1 - dist / 140) * 0.05
         this.vx -= dx * pullStrength
         this.vy -= dy * pullStrength
       }
 
+      // Trail dots
       if (this.trailDots.length < 25) {
-        const dot = this.add.circle(this.zero.x, this.zero.y, 4, 0x7CFC00, 0.7)
+        const dot = this.add.circle(this.arrow.x, this.arrow.y, 3, 0xFFD700, 0.6)
         dot.setDepth(55)
         this.trailDots.push(dot)
       } else {
         const oldest = this.trailDots.shift()
         oldest?.destroy()
-        const dot = this.add.circle(this.zero.x, this.zero.y, 4, 0x7CFC00, 0.7)
+        const dot = this.add.circle(this.arrow.x, this.arrow.y, 3, 0xFFD700, 0.6)
         dot.setDepth(55)
         this.trailDots.push(dot)
       }
@@ -614,20 +723,24 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
         d.setScale(f * 0.9 + 0.1)
       })
 
+      // Hit detection
       if (dist < this.hitZone && this.vy > 0) {
-        this.onHit(dist)
+        this.onReveal(dist)
         return
       }
 
+      // Miss detection (off screen)
       const h = this.cameras.main.height
       const w = this.cameras.main.width
-      if (this.zero.y > h + 60 || this.zero.x < -60 || this.zero.x > w + 60) {
-        this.onMiss()
+      if (this.arrow.y > h + 60 || this.arrow.x < -60 || this.arrow.x > w + 60) {
+        this.onMissCovered()
         return
       }
     }
 
-    private onHit(hitDistance: number) {
+    // ─── Reveal Animation (Hit) ───
+
+    private onReveal(hitDistance: number) {
       this.hasScored = true
       this.scoredHit = true
       this.lastHitDistance = hitDistance
@@ -636,119 +749,219 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
 
       play('hit')
 
+      // Clear trail
       this.trailDots.forEach((d) => d.destroy())
       this.trailDots = []
 
-      this.cameras.main.flash(400, 255, 255, 255)
-      this.cameras.main.shake(300, 0.015)
+      // Arrow sticks into target
+      this.arrow.setPosition(this.slotX - 2, this.slotY + 7)
+      this.arrow.setAngle(-8)
+      this.arrow.setScale(0.96)
 
+      // Flash
+      this.cameras.main.flash(180, 255, 248, 222)
       this.tweens.add({
-        targets: this.zero,
-        x: this.slotX,
-        y: this.slotY,
-        scaleX: 1,
-        scaleY: 1,
-        angle: 0,
-        duration: 250,
-        ease: 'Back.easeOut',
+        targets: this.instructionText,
+        alpha: 0,
+        y: this.instructionText.y - 8,
+        duration: 240,
+        ease: 'Quad.easeOut',
       })
 
+      // Impact particles (splinters)
+      this.spawnImpactParticles(this.slotX, this.slotY)
+      const crack = this.add.graphics().setDepth(70)
+      crack.lineStyle(2, 0xf8e0b5, 0.95)
+      crack.lineBetween(this.slotX - 3, this.slotY, this.slotX - 18, this.slotY - 13)
+      crack.lineBetween(this.slotX - 3, this.slotY, this.slotX + 17, this.slotY - 9)
+      crack.lineBetween(this.slotX - 3, this.slotY, this.slotX + 12, this.slotY + 15)
       this.tweens.add({
-        targets: this.slotGlow,
-        alpha: 1,
-        scaleX: 2.5,
-        scaleY: 2.5,
-        duration: 500,
-        ease: 'Power2',
+        targets: this.targetContainer,
+        x: this.slotX + 10,
+        angle: 11,
+        duration: 90,
+        yoyo: true,
+        ease: 'Quad.easeOut',
+      })
+      this.tweens.add({
+        targets: crack,
+        alpha: 0,
+        duration: 180,
+        delay: 140,
+        onComplete: () => crack.destroy(),
       })
 
-      this.spawnHitParticles()
+      // After brief delay, snap ropes and drop cover
+      this.time.delayedCall(220, () => {
+        this.releaseLine.clear()
+        this.spawnRopeFibres(this.slotX - 3, this.slotY - 24)
+        this.ropes.forEach((rope, index) => {
+          this.tweens.add({
+            targets: rope,
+            x: index === 0 ? -14 : 18,
+            y: rope.y + (index === 0 ? 58 : 105),
+            angle: index === 0 ? -3 : 7,
+            alpha: 0,
+            duration: index === 0 ? 620 : 440,
+            delay: index === 0 ? 240 : 0,
+            ease: 'Cubic.easeIn',
+          })
+        })
 
-      this.time.delayedCall(200, () => this.spawnConfetti())
+        this.clothStrips.forEach((strip, index) => {
+          this.tweens.add({
+            targets: strip,
+            x: (index - 3.5) * 0.6,
+            y: 5 + index * 2.8,
+            angle: (index - 3.5) * 0.35,
+            scaleY: 1.035 + index * 0.006,
+            duration: 260 + index * 28,
+            ease: 'Sine.easeIn',
+          })
+        })
 
-      const hitText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height * 0.38, 'PERFECT!', {
-        fontSize: '44px',
-        color: '#FFD700',
-        fontFamily: 'Poppins, sans-serif',
-        fontStyle: 'bold',
-        stroke: '#1B5E20',
-        strokeThickness: 5,
-      }).setOrigin(0.5).setDepth(150).setAlpha(0)
+        this.tweens.add({
+          targets: this.cover,
+          x: this.cover.x + 18,
+          y: this.cover.y + 34,
+          angle: 7,
+          scaleX: 0.98,
+          scaleY: 1.05,
+          duration: 260,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            this.tweens.add({
+              targets: this.cover,
+              x: this.cover.x + 48,
+              y: this.cameras.main.height + 250,
+              angle: 18,
+              scaleX: 0.88,
+              scaleY: 1.14,
+              duration: 1080,
+              ease: 'Cubic.easeIn',
+            })
+          },
+        })
 
-      this.tweens.add({
-        targets: hitText,
-        alpha: 1,
-        y: hitText.y - 25,
-        scaleX: { from: 0.5, to: 1 },
-        scaleY: { from: 0.5, to: 1 },
-        duration: 400,
-        ease: 'Back.easeOut',
-        onComplete: () => {
-          this.tweens.add({ targets: hitText, alpha: 0, y: hitText.y - 10, duration: 600, delay: 600 })
-        },
+        this.tweens.add({
+          targets: this.logoGroup,
+          alpha: 1,
+          scaleX: { from: 0.94, to: 1 },
+          scaleY: { from: 0.94, to: 1 },
+          duration: 1100,
+          ease: 'Cubic.easeOut',
+        })
+
+        this.tweens.add({
+          targets: this.targetContainer,
+          y: this.cameras.main.height + 250,
+          x: this.targetContainer.x + 80,
+          angle: 44,
+          duration: 1050,
+          ease: 'Cubic.easeIn',
+        })
+        this.tweens.add({
+          targets: this.arrow,
+          y: this.cameras.main.height + 257,
+          x: this.slotX + 78,
+          angle: 36,
+          duration: 1050,
+          ease: 'Cubic.easeIn',
+        })
+
+        this.cameras.main.zoomTo(1.035, 1450, 'Cubic.easeOut')
       })
 
-      this.time.delayedCall(2200, () => onResult(true, hitDistance))
+      // Reveal particles after cover drops
+      this.time.delayedCall(900, () => {
+        this.spawnRevealParticles()
+      })
+
+      // "REVEALED!" text
+      this.time.delayedCall(1100, () => {
+        const cx = this.cameras.main.width / 2
+        const isMobile = Math.min(this.cameras.main.width, this.cameras.main.height) < 600
+        const cy = this.cameras.main.height * (isMobile ? 0.42 : 0.45)
+
+        const revealText = this.add.text(cx, cy, 'REVEALED!', {
+          fontSize: `${isMobile ? 42 : 64}px`,
+          color: '#FFD166',
+          fontFamily: 'Poppins, sans-serif',
+          fontStyle: 'bold',
+          stroke: '#1B5E20',
+          strokeThickness: 6,
+        }).setOrigin(0.5).setDepth(150).setAlpha(0).setScale(0.5)
+
+        this.tweens.add({
+          targets: revealText,
+          alpha: 1,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 500,
+          ease: 'Back.easeOut',
+        })
+
+        // Subtitle
+        const subtitle = this.add.text(cx, cy + 55, 'Some identities cannot stay covered.', {
+          fontSize: `${isMobile ? 14 : 20}px`,
+          color: '#ffffff',
+          fontFamily: 'Poppins, sans-serif',
+          fontStyle: 'italic',
+          stroke: '#07111f',
+          strokeThickness: isMobile ? 5 : 4,
+          shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 6, fill: true },
+          align: 'center',
+          wordWrap: { width: this.cameras.main.width - 48 },
+        }).setOrigin(0.5).setDepth(150).setAlpha(0)
+
+        this.tweens.add({
+          targets: subtitle,
+          alpha: 0.9,
+          duration: 600,
+          delay: 300,
+        })
+      })
+
+      // Call onResult after delay
+      this.time.delayedCall(3500, () => onResult(true, hitDistance))
     }
 
-    private onMiss() {
-      this.hasScored = true
-      this.scoredHit = false
-      this.lastHitDistance = 0
+    // ─── Miss Animation (Retry) ───
+
+    private onMissCovered() {
+      this.isResetting = true
+      this.hasLaunched = false
       this.vx = 0
       this.vy = 0
 
       play('miss')
 
+      // Clear trail
       this.trailDots.forEach((d) => d.destroy())
       this.trailDots = []
 
-      const w = this.cameras.main.width
-      const h = this.cameras.main.height
-      const cx = w / 2
-      const cy = h / 2
-
-      this.cameras.main.shake(300, 0.02)
-
-      const overlay = this.add.rectangle(cx, cy, w, h, 0x000000, 0).setDepth(200)
+      // Fade out arrow
       this.tweens.add({
-        targets: overlay,
-        alpha: 0.85,
-        duration: 400,
-        ease: 'Power2',
+        targets: this.arrow,
+        alpha: 0,
+        duration: 300,
       })
 
-      for (let i = 0; i < 2; i++) {
-        const ring = this.add.graphics().setDepth(201)
-        ring.lineStyle(3 - i * 0.5, 0x7CFC00, 0.6)
-        ring.strokeCircle(cx, cy, 10)
-        ring.setAlpha(0)
-        this.tweens.add({
-          targets: ring,
-          alpha: 0.7,
-          duration: 200,
-          delay: i * 150,
-          yoyo: true,
-          hold: 80,
-        })
-        this.tweens.add({
-          targets: ring,
-          scaleX: 12 + i * 3,
-          scaleY: 12 + i * 3,
-          duration: 700,
-          delay: i * 150,
-          ease: 'Power2',
-        })
-      }
-
-      const missText = this.add.text(cx, cy, 'MISS', {
-        fontSize: '56px',
+      // Show "STILL COVERED" text
+      const cx = this.cameras.main.width / 2
+      const cy = this.cameras.main.height * 0.45
+      const missText = this.add.text(cx, cy, 'STILL COVERED', {
+        fontSize: `${Math.min(this.cameras.main.width, this.cameras.main.height) < 600 ? 34 : 52}px`,
         color: '#ffffff',
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
-        stroke: '#7CFC00',
+        stroke: '#5D4037',
         strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(202).setAlpha(0).setScale(0.5)
+      }).setOrigin(0.5).setDepth(150).setAlpha(0).setScale(0.5)
+      const retryText = this.add.text(cx, cy + 47, 'Aim for the glowing release board', {
+        fontSize: `${Math.min(this.cameras.main.width, this.cameras.main.height) < 600 ? 12 : 15}px`,
+        color: '#ffffff', fontFamily: 'Poppins, sans-serif',
+      }).setOrigin(0.5).setDepth(150).setAlpha(0)
 
       this.tweens.add({
         targets: missText,
@@ -758,27 +971,104 @@ function createScene(onResult: (hit: boolean, distance: number) => void, play: (
         duration: 300,
         ease: 'Back.easeOut',
       })
+      this.tweens.add({ targets: retryText, alpha: 0.72, duration: 300, delay: 120 })
 
-      this.time.delayedCall(1200, () => onResult(false, 0))
+      // After delay, reset for retry
+      this.time.delayedCall(1500, () => {
+        // Fade out text
+        this.tweens.add({
+          targets: missText,
+          alpha: 0,
+          duration: 400,
+          onComplete: () => missText.destroy(),
+        })
+        this.tweens.add({
+          targets: retryText,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => retryText.destroy(),
+        })
+
+        // Reset arrow
+        this.arrow.setPosition(this.arrowStartX, this.arrowStartY)
+        this.arrow.setAngle(0)
+        this.arrow.setScale(1)
+        this.arrow.setAlpha(0)
+
+        this.tweens.add({
+          targets: this.arrow,
+          alpha: 1,
+          duration: 400,
+          onComplete: () => {
+            this.isResetting = false
+            this.canDrag = true
+          },
+        })
+      })
     }
 
-    private spawnHitParticles() {
-      const colors = [0xFFD700, 0x2E7D32, 0x7CFC00, 0xffffff, 0x4CAF50]
-      for (let i = 0; i < 25; i++) {
+    // ─── Particles ───
+
+    private spawnImpactParticles(x: number, y: number) {
+      const colors = [0xC0C0C0, 0x8D6E63, 0xffffff, 0xFFD700]
+      for (let i = 0; i < 15; i++) {
         const angle = Math.random() * Math.PI * 2
-        const speed = 3 + Math.random() * 8
-        const p = this.add.circle(this.slotX, this.slotY, 2 + Math.random() * 4, colors[i % colors.length], 1)
+        const speed = 2 + Math.random() * 6
+        const p = this.add.circle(x, y, 1 + Math.random() * 3, colors[i % colors.length], 1)
         p.setDepth(100)
         this.tweens.add({
           targets: p,
-          x: p.x + Math.cos(angle) * speed * 18,
-          y: p.y + Math.sin(angle) * speed * 18,
-          alpha: 0, scaleX: 0, scaleY: 0,
-          duration: 350 + Math.random() * 250,
+          x: p.x + Math.cos(angle) * speed * 15,
+          y: p.y + Math.sin(angle) * speed * 15,
+          alpha: 0,
+          scaleX: 0,
+          scaleY: 0,
+          duration: 300 + Math.random() * 200,
           ease: 'Power2',
           onComplete: () => p.destroy(),
         })
       }
+    }
+
+    private spawnRopeFibres(x: number, y: number) {
+      for (let index = 0; index < 9; index++) {
+        const fibre = this.add.rectangle(x, y, 2, 12, index % 2 === 0 ? 0xd4a76a : 0x6f4a2d)
+        fibre.setDepth(105).setAngle(-45 + index * 11)
+        this.tweens.add({
+          targets: fibre,
+          x: x + (index - 4) * 10,
+          y: y + 28 + Math.abs(index - 4) * 4,
+          angle: fibre.angle + 80,
+          alpha: 0,
+          duration: 420 + index * 24,
+          ease: 'Quad.easeOut',
+          onComplete: () => fibre.destroy(),
+        })
+      }
+    }
+
+    private spawnRevealParticles() {
+      const cx = this.cameras.main.width / 2
+      const cy = this.cameras.main.height * 0.16
+      const colors = [0xFFD700, 0x2E7D32, 0x7CFC00, 0xffffff, 0x4CAF50, 0x87CEEB]
+      for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2
+        const speed = 3 + Math.random() * 10
+        const p = this.add.circle(cx, cy, 2 + Math.random() * 4, colors[i % colors.length], 1)
+        p.setDepth(100)
+        this.tweens.add({
+          targets: p,
+          x: p.x + Math.cos(angle) * speed * 20,
+          y: p.y + Math.sin(angle) * speed * 20,
+          alpha: 0,
+          scaleX: 0,
+          scaleY: 0,
+          duration: 500 + Math.random() * 300,
+          ease: 'Power2',
+          onComplete: () => p.destroy(),
+        })
+      }
+      this.spawnConfetti()
     }
 
     private spawnConfetti() {
