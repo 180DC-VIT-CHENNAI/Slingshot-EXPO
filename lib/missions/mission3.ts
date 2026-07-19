@@ -222,7 +222,7 @@ export const mission3Config: MissionConfig = {
         onComplete: () => { f.container.destroy() },
       })
 
-      return { distance: hitDist, completed: targets.collected >= targets.total, popup }
+      return { distance: hitDist, completed: targets.collected >= targets.total, popups: popup ? [popup] : [] }
     }
 
     return { distance: 999, completed: targets.collected >= targets.total }

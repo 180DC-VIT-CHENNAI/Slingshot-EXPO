@@ -34,7 +34,7 @@ export interface MissionConfig {
     targets: any,
     projectileX: number,
     projectileY: number,
-  ) => { distance: number; completed: boolean; popup?: PopupInfo }
+  ) => { distance: number; completed: boolean; popups?: PopupInfo[] }
   onMiss: (scene: Phaser.Scene, targets: any) => void
   isComplete: (targets: any) => boolean
   getScore: (targets: any) => number
@@ -695,8 +695,10 @@ export function createMissionScene(
       this.showScore()
       this.updateShotsLeft()
 
-      if (hitResult.popup) {
-        this.showPopup(hitResult.popup)
+      if (hitResult.popups && hitResult.popups.length > 0) {
+        hitResult.popups.forEach((popup, i) => {
+          this.time.delayedCall(i * 500, () => this.showPopup(popup))
+        })
       }
 
       const shouldContinue = config.multiShotOnHit && !config.isComplete(this.targets)
@@ -987,11 +989,11 @@ export function createMissionScene(
       const h = this.cameras.main.height
       const w = this.cameras.main.width
 
-      const boxW = Math.min(260, w * 0.4)
-      const boxH = 80
+      const boxW = Math.min(320, w * 0.75)
+      const boxH = 110
       const margin = 10
-      const startX = w - 14
-      const startY = 14
+      const centerX = w / 2
+      const startY = h * 0.12
 
       this.popupContainers.forEach((c, i) => {
         const targetY = startY + (i + 1) * (boxH + margin)
@@ -1005,29 +1007,29 @@ export function createMissionScene(
 
       const bg = this.add.graphics()
       const accent = popup.color ?? 0x7CFC00
-      bg.fillStyle(0x000000, 0.8)
-      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
-      bg.lineStyle(2, accent, 0.9)
-      bg.strokeRoundedRect(-boxW, 0, boxW, boxH, 10)
-      bg.fillStyle(accent, 0.1)
-      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
+      bg.fillStyle(0x000000, 0.85)
+      bg.fillRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
+      bg.lineStyle(2.5, accent, 0.9)
+      bg.strokeRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
+      bg.fillStyle(accent, 0.08)
+      bg.fillRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
 
-      const title = this.add.text(-boxW + 14, 10, popup.title, {
-        fontSize: '13px',
+      const title = this.add.text(-boxW / 2 + 18, 14, popup.title, {
+        fontSize: '18px',
         color: '#' + accent.toString(16).padStart(6, '0'),
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
       })
 
-      const body = this.add.text(-boxW + 14, 30, popup.body, {
-        fontSize: '11px',
-        color: '#cccccc',
+      const body = this.add.text(-boxW / 2 + 18, 40, popup.body, {
+        fontSize: '14px',
+        color: '#dddddd',
         fontFamily: 'Poppins, sans-serif',
-        wordWrap: { width: boxW - 28 },
-        lineSpacing: 3,
+        wordWrap: { width: boxW - 36 },
+        lineSpacing: 4,
       })
 
-      const container = this.add.container(startX, startY, [bg, title, body])
+      const container = this.add.container(centerX, startY, [bg, title, body])
       container.setDepth(300)
       container.setAlpha(0)
       container.setScale(0.85)
@@ -1037,18 +1039,18 @@ export function createMissionScene(
         alpha: 1,
         scaleX: 1,
         scaleY: 1,
-        duration: 250,
+        duration: 300,
         ease: 'Back.easeOut',
       })
 
       this.popupContainers.push(container)
 
-      this.time.delayedCall(4000, () => {
+      this.time.delayedCall(5000, () => {
         if (!container.active) return
         this.tweens.add({
           targets: container,
           alpha: 0,
-          x: startX + 50,
+          y: container.y - 30,
           duration: 400,
           ease: 'Power2',
           onComplete: () => {

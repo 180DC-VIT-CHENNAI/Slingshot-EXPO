@@ -335,7 +335,7 @@ export const mission4Config: MissionConfig = {
     targets: any,
     projectileX: number,
     projectileY: number,
-  ): { distance: number; completed: boolean; popup?: { title: string; body: string; color?: number } } {
+  ): { distance: number; completed: boolean; popups?: { title: string; body: string; color?: number }[] } {
     const hitIdx = hitTestCard(targets.cards, projectileX, projectileY)
     targets.shotFired = true
 
@@ -417,7 +417,7 @@ export const mission4Config: MissionConfig = {
         color: 0x4CAF50,
       }
 
-      return { distance: 5, completed: true, popup }
+      return { distance: 5, completed: true, popups: [popup] }
     }
 
     if (hitIdx >= 0) {
@@ -507,7 +507,7 @@ export const mission4Config: MissionConfig = {
         color: 0xF44336,
       }
 
-      return { distance: 250, completed: false, popup }
+      return { distance: 250, completed: false, popups: [popup] }
     }
 
     return { distance: 300, completed: false }

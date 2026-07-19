@@ -127,8 +127,8 @@ export const mission2Config: MissionConfig = {
     const crates: CrateData[] = []
     const cx = w / 2
     const baseY = h * 0.55
-    const size = Math.min(50, w / 10)
-    const gap = 4
+    const size = Math.min(72, w / 7)
+    const gap = 6
 
     const rows = [
       { count: 4, y: baseY },
@@ -155,8 +155,8 @@ export const mission2Config: MissionConfig = {
         rect.lineBetween(x - size / 2 + 4, y - size / 2 + 4, x + size / 2 - 4, y + size / 2 - 4)
 
         const label = scene.add.text(x, y, CRATE_LABELS[idx], {
-          fontSize: '7px', color: '#f0d890', fontFamily: 'Poppins, sans-serif',
-          fontStyle: 'bold', align: 'center', wordWrap: { width: size - 8 },
+          fontSize: '10px', color: '#f0d890', fontFamily: 'Poppins, sans-serif',
+          fontStyle: 'bold', align: 'center', wordWrap: { width: size - 10 },
         }).setOrigin(0.5).setDepth(11 + ri)
 
         crates.push({ rect, label, x, y, alive: true, index: idx })
@@ -179,7 +179,7 @@ export const mission2Config: MissionConfig = {
 
     for (const c of targets.crates) {
       if (!c.alive) continue
-      const half = 35
+      const half = 45
       if (px > c.x - half && px < c.x + half && py > c.y - half && py < c.y + half) {
         const dist = Math.sqrt((px - c.x) ** 2 + (py - c.y) ** 2)
         return { hit: true, hitDistance: dist }
@@ -191,8 +191,7 @@ export const mission2Config: MissionConfig = {
   onHit(scene, targets, px, py) {
     let hitAny = false
     const blastRadius = 80
-    let closestDist = Infinity
-    let hitPopup: { title: string; body: string } | undefined
+    const hitPopups: { title: string; body: string }[] = []
 
     targets.crates.forEach((c: CrateData) => {
       if (!c.alive) return
@@ -201,13 +200,10 @@ export const mission2Config: MissionConfig = {
       const dist = Math.sqrt(dx * dx + dy * dy)
       if (dist < blastRadius) {
         hitAny = true
-        if (dist < closestDist) {
-          closestDist = dist
-          const label = CRATE_LABELS[c.index]
-          hitPopup = CRATE_POPUPS[label]
-        }
-        const delay = Math.floor(dist / blastRadius * 200)
-        scene.time.delayedCall(delay, () => destroyCrate(scene, c, targets))
+        const label = CRATE_LABELS[c.index]
+        const popup = CRATE_POPUPS[label]
+        if (popup) hitPopups.push(popup)
+        destroyCrate(scene, c, targets)
       }
     })
 
@@ -215,7 +211,7 @@ export const mission2Config: MissionConfig = {
 
     if (hitAny) {
       const dist = Math.sqrt(px * px + py * py) * 0.01
-      return { distance: Math.min(100, dist), completed: targets.totalDestroyed >= targets.totalCrates, popup: hitPopup }
+      return { distance: Math.min(100, dist), completed: targets.totalDestroyed >= targets.totalCrates, popups: hitPopups }
     }
     return { distance: 999, completed: targets.totalDestroyed >= targets.totalCrates }
   },

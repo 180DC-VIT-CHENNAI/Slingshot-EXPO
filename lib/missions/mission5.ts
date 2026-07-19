@@ -362,7 +362,7 @@ export const mission5Config: MissionConfig = {
     targets: any,
     projectileX: number,
     projectileY: number,
-  ): { distance: number; completed: boolean; popup?: { title: string; body: string; color?: number } } {
+  ): { distance: number; completed: boolean; popups?: { title: string; body: string; color?: number }[] } {
     const hitIdx = hitTestBottleneck(targets.bottlenecks, projectileX, projectileY)
     targets.shotsUsed++
 
@@ -583,7 +583,7 @@ export const mission5Config: MissionConfig = {
     }
 
     const completed = targets.destroyedCount >= targets.totalBottlenecks
-    return { distance: 15, completed, popup }
+    return { distance: 15, completed, popups: popup ? [popup] : [] }
   },
 
   onMiss(scene: Phaser.Scene, targets: any): void {
