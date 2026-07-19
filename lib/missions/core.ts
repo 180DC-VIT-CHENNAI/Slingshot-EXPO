@@ -989,11 +989,11 @@ export function createMissionScene(
       const h = this.cameras.main.height
       const w = this.cameras.main.width
 
-      const boxW = Math.min(320, w * 0.75)
-      const boxH = 110
-      const margin = 10
-      const centerX = w / 2
-      const startY = h * 0.12
+      const boxW = Math.min(260, w * 0.45)
+      const boxH = 70
+      const margin = 8
+      const startX = w - 14
+      const startY = 14
 
       this.popupContainers.forEach((c, i) => {
         const targetY = startY + (i + 1) * (boxH + margin)
@@ -1008,28 +1008,28 @@ export function createMissionScene(
       const bg = this.add.graphics()
       const accent = popup.color ?? 0x7CFC00
       bg.fillStyle(0x000000, 0.85)
-      bg.fillRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
-      bg.lineStyle(2.5, accent, 0.9)
-      bg.strokeRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
+      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
+      bg.lineStyle(2, accent, 0.9)
+      bg.strokeRoundedRect(-boxW, 0, boxW, boxH, 10)
       bg.fillStyle(accent, 0.08)
-      bg.fillRoundedRect(-boxW / 2, 0, boxW, boxH, 14)
+      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
 
-      const title = this.add.text(-boxW / 2 + 18, 14, popup.title, {
-        fontSize: '18px',
+      const title = this.add.text(-boxW + 14, 10, popup.title, {
+        fontSize: '14px',
         color: '#' + accent.toString(16).padStart(6, '0'),
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
       })
 
-      const body = this.add.text(-boxW / 2 + 18, 40, popup.body, {
-        fontSize: '14px',
+      const body = this.add.text(-boxW + 14, 30, popup.body, {
+        fontSize: '11px',
         color: '#dddddd',
         fontFamily: 'Poppins, sans-serif',
-        wordWrap: { width: boxW - 36 },
-        lineSpacing: 4,
+        wordWrap: { width: boxW - 28 },
+        lineSpacing: 2,
       })
 
-      const container = this.add.container(centerX, startY, [bg, title, body])
+      const container = this.add.container(startX, startY, [bg, title, body])
       container.setDepth(300)
       container.setAlpha(0)
       container.setScale(0.85)
@@ -1039,18 +1039,18 @@ export function createMissionScene(
         alpha: 1,
         scaleX: 1,
         scaleY: 1,
-        duration: 300,
+        duration: 250,
         ease: 'Back.easeOut',
       })
 
       this.popupContainers.push(container)
 
-      this.time.delayedCall(5000, () => {
+      this.time.delayedCall(4500, () => {
         if (!container.active) return
         this.tweens.add({
           targets: container,
           alpha: 0,
-          y: container.y - 30,
+          x: startX + 50,
           duration: 400,
           ease: 'Power2',
           onComplete: () => {
