@@ -3,14 +3,31 @@
 import { useEffect, useState } from 'react'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { AudioManager } from '@/components/AudioManager'
+import { loadProgress, clearProgress } from '@/lib/levels'
 
 export default function HomePage() {
   const [visible, setVisible] = useState(false)
+  const [playerName, setPlayerName] = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 100)
+    const p = loadProgress()
+    if (p.playerName) setPlayerName(p.playerName)
     return () => clearTimeout(timer)
   }, [])
+
+  const handleLogout = async () => {
+    const name = loadProgress().playerName
+    try {
+      await fetch('/api/session', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+    } catch {}
+    clearProgress()
+    setPlayerName('')
+  }
 
   return (
     <AudioManager>
@@ -67,8 +84,22 @@ export default function HomePage() {
             href="/play"
             className="inline-block btn-primary text-xl px-14 py-5 rounded-2xl"
           >
-            PLAY NOW
+            START JOURNEY
           </a>
+
+          {playerName && (
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <span className="text-xs text-white/40 font-display">
+                Playing as <span className="text-white/70">{playerName}</span>
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-white/40 hover:text-red-400 font-display transition-colors cursor-pointer"
+              >
+                Not you? Switch user
+              </button>
+            </div>
+          )}
 
           <div className="mt-10 flex items-center justify-center gap-6 text-xs">
             <a href="/wall" className="text-white/50 hover:text-white/80 transition-colors">

@@ -63,3 +63,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const body = await request.json().catch(() => ({}))
+    const name = (body.name || '').trim()
+
+    console.log('[Session] Logout:', name || 'Anonymous', 'from IP:', ip)
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('[Session] Logout ERROR:', error)
+    return NextResponse.json({ ok: true })
+  }
+}

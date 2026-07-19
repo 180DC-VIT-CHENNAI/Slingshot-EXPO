@@ -64,6 +64,13 @@ export default function WallClient() {
         </div>
 
         <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex items-center gap-2">
+          <a
+            href="/leaderboard"
+            className="glass-card px-2 py-1.5 sm:px-3 sm:py-2 text-center hover:border-yellow-500/30 transition-colors"
+            title="Leaderboard"
+          >
+            <span className="text-lg">🏆</span>
+          </a>
           <div className="glass-card px-2 py-1.5 sm:px-3 sm:py-2 text-center min-w-[48px] sm:min-w-[60px]">
             <div className="font-display font-bold text-[9px] sm:text-xs text-white/60 uppercase tracking-wider">Users</div>
             <div className="relative">
