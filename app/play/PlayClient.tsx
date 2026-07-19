@@ -66,6 +66,14 @@ function PlayContent() {
 
       {gameState === 'playing' && (
         <div className="fixed inset-0">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: 'url(/images/play-background.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
           <GameCanvas key={gameKey.current} onResult={handleResult} />
         </div>
       )}
