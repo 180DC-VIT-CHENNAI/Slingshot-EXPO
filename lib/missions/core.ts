@@ -139,10 +139,12 @@ export function createMissionScene(
 
       const w = this.cameras.main.width
       const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+      const gravity = isMobile ? config.gravity * 0.85 : config.gravity
 
       this.projectile.x += this.vx
       this.projectile.y += this.vy
-      this.vy += config.gravity
+      this.vy += gravity
       this.currentRotation += this.vx * 0.04
       this.projectile.angle = this.currentRotation
 
@@ -206,8 +208,9 @@ export function createMissionScene(
     }
 
     private drawSlingshotBase(w: number, h: number) {
+      const isMobile = Math.min(w, h) < 600
       const sx = w / 2
-      const sy = h - 100
+      const sy = isMobile ? h * 0.76 : h - 100
       const sg = this.add.graphics()
 
       sg.fillStyle(0x2a1a0e, 0.3)
@@ -322,12 +325,13 @@ export function createMissionScene(
     }
 
     private createDragHint() {
+      const isMobile = Math.min(this.cameras.main.width, this.cameras.main.height) < 600
       this.dragHint = this.add.text(
         this.slingshotX,
         this.slingshotY - 38,
-        '↑ DRAG',
+        isMobile ? '↓ PULL' : '↑ DRAG',
         {
-          fontSize: '13px',
+          fontSize: isMobile ? '15px' : '13px',
           color: '#facc15',
           fontFamily: 'Cabin, sans-serif',
           fontStyle: 'bold',
@@ -346,7 +350,7 @@ export function createMissionScene(
     }
 
     private createScoreDisplay(w: number, h: number) {
-      this.scoreText = this.add.text(w - 16, 16, '', {
+      this.scoreText = this.add.text(w - 16, 44, '', {
         fontSize: '14px',
         color: '#ffffff',
         fontFamily: 'Poppins, sans-serif',
@@ -399,8 +403,9 @@ export function createMissionScene(
     }
 
     private createCountdown(w: number, h: number) {
-      this.countdownText = this.add.text(w / 2, h * 0.4, '', {
-        fontSize: '80px',
+      const isMobile = Math.min(w, h) < 600
+      this.countdownText = this.add.text(w / 2, h * (isMobile ? 0.35 : 0.4), '', {
+        fontSize: isMobile ? '60px' : '80px',
         color: config.countdownColor ?? '#ffffff',
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
@@ -467,9 +472,14 @@ export function createMissionScene(
 
       if (!this.canDrag || this.hasLaunched) return
 
+      const w = this.cameras.main.width
+      const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+      const grabRadius = isMobile ? 140 : 100
+
       const dx = pointer.x - this.projectile.x
       const dy = pointer.y - this.projectile.y
-      if (Math.sqrt(dx * dx + dy * dy) < 100) {
+      if (Math.sqrt(dx * dx + dy * dy) < grabRadius) {
         this.isDragging = true
         if (this.dragHint) this.dragHint.setAlpha(0)
       }
@@ -478,7 +488,10 @@ export function createMissionScene(
     private onPointerMove(pointer: Phaser.Input.Pointer) {
       if (!this.isDragging || this.hasLaunched) return
 
-      const maxPull = config.maxPull
+      const w = this.cameras.main.width
+      const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+      const maxPull = isMobile ? config.maxPull * 0.75 : config.maxPull
       let dx = pointer.x - this.startX
       let dy = pointer.y - this.startY
       const dist = Math.sqrt(dx * dx + dy * dy)
@@ -555,9 +568,15 @@ export function createMissionScene(
       this.trajectoryDots.forEach((d) => d.destroy())
       this.trajectoryDots = []
 
+      const w = this.cameras.main.width
+      const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+      const gravity = isMobile ? config.gravity * 0.85 : config.gravity
+      const power = isMobile ? config.power * 1.15 : config.power
+
       const dx = this.projectile.x - this.startX
       const dy = this.projectile.y - this.startY
-      const pwr = config.power
+      const pwr = power
       const tvx = -dx * pwr
       const tvy = -dy * pwr
 
@@ -566,7 +585,7 @@ export function createMissionScene(
         const px = this.startX + tvx * (time / 16.67)
         const py =
           this.startY + tvy * (time / 16.67) +
-          0.5 * config.gravity * (time / 16.67) * (time / 16.67)
+          0.5 * gravity * (time / 16.67) * (time / 16.67)
         const alpha = Math.max(0, 0.45 - t * 0.012)
         const dot = this.add.circle(px, py, 3, 0xff5252, alpha)
         this.trajectoryDots.push(dot)
@@ -588,9 +607,14 @@ export function createMissionScene(
 
       play('launch')
 
+      const w = this.cameras.main.width
+      const h = this.cameras.main.height
+      const isMobile = Math.min(w, h) < 600
+      const power = isMobile ? config.power * 1.15 : config.power
+
       const dx = this.projectile.x - this.startX
       const dy = this.projectile.y - this.startY
-      const pwr = config.power
+      const pwr = power
       this.vx = -dx * pwr
       this.vy = -dy * pwr
 
