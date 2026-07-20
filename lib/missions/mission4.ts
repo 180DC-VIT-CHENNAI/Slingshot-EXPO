@@ -41,7 +41,7 @@ const STRATEGY_EXPLANATIONS: Record<string, { correct: string; wrong: string }> 
 }
 
 function getCardBounds(card: any): { x: number; y: number; w: number; h: number } {
-  return { x: card.x, y: card.y, w: 80, h: 110 }
+  return { x: card.x, y: card.y, w: card.w ?? 80, h: card.h ?? 110 }
 }
 
 function hitTestCard(cards: any[], px: number, py: number): number {
@@ -220,19 +220,24 @@ export const mission4Config: MissionConfig = {
 
   setupTargets(scene: Phaser.Scene, w: number, h: number): any {
     const tableY = h * 0.55
+    const isMobile = w < 500
+    const cardW = isMobile ? Math.min(70, (w - 40) / 5 - 6) : 80
+    const cardH = isMobile ? cardW * 1.35 : 110
+    const labelSize = isMobile ? '9px' : '11px'
+    const iconSize = isMobile ? '16px' : '20px'
     const spacing = w / (STRATEGIES.length + 1)
     const cards: any[] = []
 
     STRATEGIES.forEach((strat, i) => {
       const cx = spacing * (i + 1)
-      const cy = tableY - 55
+      const cy = tableY - (isMobile ? 40 : 55)
 
       const card = {
         x: cx,
         y: cy,
         baseY: cy,
-        w: 80,
-        h: 110,
+        w: cardW,
+        h: cardH,
         strategy: strat,
         destroyed: false,
         isCorrect: false,
@@ -240,42 +245,45 @@ export const mission4Config: MissionConfig = {
         back: scene.add.graphics(),
         front: scene.add.graphics(),
         labelText: scene.add.text(0, 0, strat.label, {
-          fontSize: '11px',
+          fontSize: labelSize,
           color: '#ffffff',
           fontFamily: 'Poppins, sans-serif',
           fontStyle: 'bold',
           align: 'center',
         }).setOrigin(0.5),
-        iconText: scene.add.text(0, -20, strat.icon, {
-          fontSize: '20px',
+        iconText: scene.add.text(0, -(isMobile ? 14 : 20), strat.icon, {
+          fontSize: iconSize,
         }).setOrigin(0.5),
         correctGlow: scene.add.graphics(),
         wrongBorder: scene.add.graphics(),
         floatTween: null as any,
       }
 
+      const halfW = cardW / 2
+      const halfH = cardH / 2
+
       card.back.fillStyle(0x1a1a2e, 1)
-      card.back.fillRoundedRect(-40, -55, 80, 110, 8)
+      card.back.fillRoundedRect(-halfW, -halfH, cardW, cardH, 8)
       card.back.lineStyle(2, 0x333355, 1)
-      card.back.strokeRoundedRect(-40, -55, 80, 110, 8)
+      card.back.strokeRoundedRect(-halfW, -halfH, cardW, cardH, 8)
       card.back.lineStyle(1, 0x444466, 0.3)
-      for (let r = -30; r < 30; r += 12) {
-        for (let c = -30; c < 30; c += 12) {
+      for (let r = -halfH + 20; r < halfH - 10; r += 12) {
+        for (let c = -halfW + 10; c < halfW - 10; c += 12) {
           card.back.fillStyle(0x333355, 0.2)
           card.back.fillRect(c + 2, r + 2, 4, 4)
         }
       }
 
       card.front.fillStyle(0x0d0d1a, 1)
-      card.front.fillRoundedRect(-40, -55, 80, 110, 8)
+      card.front.fillRoundedRect(-halfW, -halfH, cardW, cardH, 8)
       card.front.setAlpha(0)
 
       card.correctGlow.fillStyle(0xFFD700, 0.2)
-      card.correctGlow.fillRoundedRect(-44, -59, 88, 118, 10)
+      card.correctGlow.fillRoundedRect(-halfW - 4, -halfH - 4, cardW + 8, cardH + 8, 10)
       card.correctGlow.setAlpha(0)
 
       card.wrongBorder.lineStyle(2, 0x444466, 0.6)
-      card.wrongBorder.strokeRoundedRect(-40, -55, 80, 110, 8)
+      card.wrongBorder.strokeRoundedRect(-halfW, -halfH, cardW, cardH, 8)
       card.wrongBorder.setAlpha(0.7)
 
       card.container.add([
@@ -301,26 +309,15 @@ export const mission4Config: MissionConfig = {
 
     const correctIdx = Math.floor(Math.random() * cards.length)
     cards[correctIdx].isCorrect = true
-    cards[correctIdx].correctGlow.setAlpha(0.6)
+    cards[correctIdx].correctGlow.setAlpha(0)
     cards[correctIdx].wrongBorder.setAlpha(0)
-
-    const glowTween = scene.tweens.add({
-      targets: cards[correctIdx].correctGlow,
-      alpha: { from: 0.3, to: 1 },
-      scaleX: { from: 0.97, to: 1.03 },
-      scaleY: { from: 0.97, to: 1.03 },
-      duration: 900,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
 
     return {
       cards,
       correctIdx,
       shotFired: false,
       answeredCorrectly: false,
-      glowTween,
+      glowTween: null,
     }
   },
 
@@ -362,10 +359,12 @@ export const mission4Config: MissionConfig = {
 
       card.back.setAlpha(0)
       card.front.setAlpha(1)
+      const halfW = card.w / 2
+      const halfH = card.h / 2
       card.front.fillStyle(0x1a3a1a, 1)
-      card.front.fillRoundedRect(-40, -55, 80, 110, 8)
+      card.front.fillRoundedRect(-halfW, -halfH, card.w, card.h, 8)
       card.front.lineStyle(3, 0xFFD700, 1)
-      card.front.strokeRoundedRect(-40, -55, 80, 110, 8)
+      card.front.strokeRoundedRect(-halfW, -halfH, card.w, card.h, 8)
 
       card.iconText.setVisible(false)
       card.labelText.setText('✓\nCORRECT')
@@ -469,16 +468,6 @@ export const mission4Config: MissionConfig = {
       const correctCard = targets.cards[targets.correctIdx]
       if (correctCard && !correctCard.destroyed) {
         if (correctCard.floatTween) correctCard.floatTween.remove()
-        scene.tweens.add({
-          targets: correctCard.container,
-          scaleX: 1.15,
-          scaleY: 1.15,
-          duration: 300,
-          yoyo: true,
-          repeat: 2,
-          ease: 'Sine.easeInOut',
-        })
-        correctCard.correctGlow.setAlpha(1)
       }
 
       const label = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height * 0.35, 'WRONG', {
@@ -529,19 +518,9 @@ export const mission4Config: MissionConfig = {
     const correctCard = targets.cards[targets.correctIdx]
     if (correctCard && !correctCard.destroyed) {
       if (correctCard.floatTween) correctCard.floatTween.remove()
-      scene.tweens.add({
-        targets: correctCard.container,
-        scaleX: 1.15,
-        scaleY: 1.15,
-        duration: 300,
-        yoyo: true,
-        repeat: 2,
-        ease: 'Sine.easeInOut',
-      })
-      correctCard.correctGlow.setAlpha(1)
     }
 
-    const label = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height * 0.35, 'Missed! The correct strategy was highlighted.', {
+    const label = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height * 0.35, 'Missed! Better luck next time.', {
       fontSize: '18px',
       color: '#FFD700',
       fontFamily: 'Poppins, sans-serif',

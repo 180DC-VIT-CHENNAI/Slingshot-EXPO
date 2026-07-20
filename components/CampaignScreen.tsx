@@ -62,11 +62,16 @@ export default function CampaignScreen({ onSelectLevel, onBack, onLogout }: Camp
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-display font-bold text-lg text-white">Consultant Journey</h2>
             <button
-              onClick={onLogout}
-              className="text-xs text-white/50 hover:text-red-400 font-display transition-colors cursor-pointer"
+              onClick={() => {
+                const label = progress.playerName || 'Anonymous'
+                if (window.confirm(`Switch away from "${label}"? All unsaved progress will be lost.`)) {
+                  onLogout()
+                }
+              }}
+              className="text-xs text-white/50 hover:text-red-400 font-display transition-colors cursor-pointer px-2 py-1 rounded-md hover:bg-white/5"
               title="Switch user"
             >
-              {progress.playerName || 'Anonymous'} ✕
+              {progress.playerName ? `${progress.playerName} ✕` : 'New Player ✕'}
             </button>
           </div>
           <div className="flex items-center gap-3 mb-2">

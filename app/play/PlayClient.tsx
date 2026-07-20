@@ -148,6 +148,13 @@ function PlayContent() {
     setScreen('campaign')
   }, [])
 
+  const handleSwitchPlayer = useCallback(() => {
+    const name = loadProgress().playerName
+    const label = name || 'Anonymous'
+    if (!window.confirm(`Switch away from "${label}"? All unsaved progress will be lost.`)) return
+    handleLogout()
+  }, [handleLogout])
+
   const campaignScore = Object.values(progress.levelScores).reduce((a, b) => a + b, 0)
 
   return (
@@ -165,13 +172,20 @@ function PlayContent() {
       {screen === 'playing' && (
         <div className="fixed inset-0">
           <GameCanvas key={gameKey.current} onResult={handleResult} levelId={currentLevelId} />
-          <div className="absolute top-3 left-3" style={{ zIndex: 100 }}>
+          <div className="absolute top-3 left-3 flex gap-2" style={{ zIndex: 100 }}>
             <button
               onClick={handleBackToCampaign}
               className="px-3 py-1.5 rounded-lg text-xs font-display font-bold text-white/60 hover:text-white/90 transition-colors"
               style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               ← MENU
+            </button>
+            <button
+              onClick={handleSwitchPlayer}
+              className="px-3 py-1.5 rounded-lg text-xs font-display font-bold text-white/40 hover:text-red-400 transition-colors"
+              style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              ↻ Switch Player
             </button>
           </div>
           <div className="absolute top-3 right-3" style={{ zIndex: 100 }}>

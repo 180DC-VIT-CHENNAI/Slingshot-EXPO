@@ -12,7 +12,7 @@ const BOTTLENECK_POPUPS = [
 ]
 
 function getBottleneckBounds(bn: any): { x: number; y: number; w: number; h: number } {
-  return { x: bn.x, y: bn.y, w: 70, h: 55 }
+  return { x: bn.x, y: bn.y, w: bn.bw ?? 70, h: bn.bh ?? 55 }
 }
 
 function hitTestBottleneck(bottlenecks: any[], px: number, py: number): number {
@@ -116,8 +116,9 @@ export const mission5Config: MissionConfig = {
     const pipeY = h * 0.45
     const pipeG = scene.add.graphics().setDepth(-9)
 
-    const nodeW = 100
-    const nodeH = 60
+    const isMobile = w < 500
+    const nodeW = isMobile ? Math.min(80, (w - 60) / 4 - 10) : 100
+    const nodeH = isMobile ? nodeW * 0.55 : 60
     const spacing = (w - nodeW * NODE_LABELS.length) / (NODE_LABELS.length + 1)
 
     const nodes: any[] = []
@@ -140,15 +141,15 @@ export const mission5Config: MissionConfig = {
       pipeG.lineStyle(2, 0xffffff, 0.3)
       pipeG.strokeRoundedRect(nx - nodeW / 2, ny - nodeH / 2, nodeW, nodeH, 6)
 
-      const stepNum = scene.add.text(nx, ny - 16, `${i + 1}`, {
-        fontSize: '14px',
+      const stepNum = scene.add.text(nx, ny - (isMobile ? 10 : 16), `${i + 1}`, {
+        fontSize: isMobile ? '12px' : '14px',
         color: '#ffffff',
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(-7).setAlpha(0.9)
 
-      const labelText = scene.add.text(nx, ny + 6, label, {
-        fontSize: '13px',
+      const labelText = scene.add.text(nx, ny + (isMobile ? 3 : 6), label, {
+        fontSize: isMobile ? '10px' : '13px',
         color: '#ffffff',
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
@@ -231,7 +232,8 @@ export const mission5Config: MissionConfig = {
 
   setupTargets(scene: Phaser.Scene, w: number, h: number): any {
     const pipeY = h * 0.45
-    const nodeW = 100
+    const isMobile = w < 500
+    const nodeW = isMobile ? Math.min(80, (w - 60) / 4 - 10) : 100
     const nodeCount = NODE_LABELS.length
     const spacing = (w - nodeW * nodeCount) / (nodeCount + 1)
 
@@ -250,24 +252,29 @@ export const mission5Config: MissionConfig = {
       const midX = (from.x + to.x) / 2
       const midY = from.y
 
+      const bnW = isMobile ? Math.min(60, (to.x - from.x) * 0.6) : 70
+      const bnH = isMobile ? bnW * 0.75 : 55
+      const halfBW = bnW / 2
+      const halfBH = bnH / 2
+
       const bnContainer = scene.add.container(midX, midY).setDepth(10)
       const bnG = scene.add.graphics()
       bnG.fillStyle(0xCC0000, 1)
-      bnG.fillRoundedRect(-35, -27, 70, 54, 5)
+      bnG.fillRoundedRect(-halfBW, -halfBH, bnW, bnH, 5)
       bnG.lineStyle(2, 0x880000, 1)
-      bnG.strokeRoundedRect(-35, -27, 70, 54, 5)
+      bnG.strokeRoundedRect(-halfBW, -halfBH, bnW, bnH, 5)
 
       for (let j = 0; j < 4; j++) {
-        const stripeY = -22 + j * 13
+        const stripeY = -halfBH + 5 + j * (bnH / 4)
         bnG.fillStyle(0xFFDD00, 0.5)
-        bnG.fillRect(-35, stripeY, 16, 8)
-        bnG.fillRect(-10, stripeY, 30, 8)
-        bnG.fillRect(16, stripeY, 19, 8)
+        bnG.fillRect(-halfBW, stripeY, bnW * 0.22, bnH * 0.15)
+        bnG.fillRect(-halfBW + bnW * 0.3, stripeY, bnW * 0.42, bnH * 0.15)
+        bnG.fillRect(halfBW - bnW * 0.28, stripeY, bnW * 0.28, bnH * 0.15)
       }
 
       const redGlow = scene.add.graphics()
       redGlow.fillStyle(0xFF0000, 0.2)
-      redGlow.fillRoundedRect(-39, -31, 78, 62, 8)
+      redGlow.fillRoundedRect(-halfBW - 4, -halfBH - 4, bnW + 8, bnH + 8, 8)
       bnContainer.add(redGlow)
       scene.tweens.add({
         targets: redGlow,
@@ -282,22 +289,22 @@ export const mission5Config: MissionConfig = {
 
       bnContainer.add(bnG)
 
-      const blockLabel = scene.add.text(midX, midY - 2, 'BLOCKED', {
-        fontSize: '10px',
+      const blockLabel = scene.add.text(midX, midY - (isMobile ? 1 : 2), 'BLOCKED', {
+        fontSize: isMobile ? '8px' : '10px',
         color: '#ffffff',
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(11)
 
-      const blockIcon = scene.add.text(midX, midY + 12, '✖', {
-        fontSize: '14px',
+      const blockIcon = scene.add.text(midX, midY + (isMobile ? 8 : 12), '✖', {
+        fontSize: isMobile ? '12px' : '14px',
         color: '#ff6666',
         fontFamily: 'Poppins, sans-serif',
       }).setOrigin(0.5).setDepth(11)
 
       const warnTri = scene.add.graphics().setDepth(11)
       warnTri.fillStyle(0xFFDD00, 0.6)
-      warnTri.fillTriangle(midX - 5, midY + 20, midX + 5, midY + 20, midX, midY + 14)
+      warnTri.fillTriangle(midX - 4, midY + (isMobile ? 16 : 20), midX + 4, midY + (isMobile ? 16 : 20), midX, midY + (isMobile ? 10 : 14))
 
       scene.tweens.add({
         targets: warnTri,
@@ -312,6 +319,8 @@ export const mission5Config: MissionConfig = {
       bottlenecks.push({
         x: midX,
         y: midY,
+        bw: bnW,
+        bh: bnH,
         index: idx,
         position: pos,
         destroyed: false,
@@ -427,7 +436,7 @@ export const mission5Config: MissionConfig = {
     const greenFlowG = scene.children.getByName('greenFlow') as Phaser.GameObjects.Graphics
     const flowDotG = scene.children.getByName('greenFlowDots') as Phaser.GameObjects.Graphics
     if (greenFlowG && flowDotG) {
-      const nodeW = 100
+      const nodeW = targets.nodes[0].w
       const pipeY = targets.nodes[0].y
       const flowStartX = targets.nodes[0].x - nodeW / 2
 
@@ -439,7 +448,7 @@ export const mission5Config: MissionConfig = {
 
       if (nextBlockedIdx >= 0) {
         const blockedBn = targets.bottlenecks[nextBlockedIdx]
-        flowEndX = blockedBn.x - 35
+        flowEndX = blockedBn.x - (blockedBn.bw ?? 70) / 2
       } else {
         const lastNode = targets.nodes[targets.nodes.length - 1]
         flowEndX = lastNode.x + lastNode.w / 2

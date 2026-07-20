@@ -1,9 +1,6 @@
 import * as Phaser from 'phaser'
 import { type MissionConfig } from './core'
 
-let projectileRef: Phaser.GameObjects.Container | null = null
-let prevY = Infinity
-
 export const mission1Config: MissionConfig = {
   sceneKey: 'Mission1',
   gravity: 0.18,
@@ -252,8 +249,7 @@ export const mission1Config: MissionConfig = {
     ])
     container.setDepth(60)
 
-    projectileRef = container
-    prevY = sy - 78
+    scene.data.set('m1_projectileRef', container)
     return container
   },
 
@@ -262,6 +258,7 @@ export const mission1Config: MissionConfig = {
       slotX: w / 2,
       slotY: h * 0.35,
       hitDistance: Infinity,
+      prevY: Infinity,
     }
   },
 
@@ -269,8 +266,8 @@ export const mission1Config: MissionConfig = {
     const dx = projectileX - targets.slotX
     const dy = projectileY - targets.slotY
     const dist = Math.sqrt(dx * dx + dy * dy)
-    const movingDown = projectileY > prevY
-    prevY = projectileY
+    const movingDown = projectileY > targets.prevY
+    targets.prevY = projectileY
 
     if (dist < 70 && movingDown) {
       targets.hitDistance = dist
@@ -280,6 +277,7 @@ export const mission1Config: MissionConfig = {
   },
 
   onHit(scene, targets, _projectileX, _projectileY) {
+    const projectileRef = scene.data.get('m1_projectileRef')
     if (projectileRef) {
       scene.tweens.add({
         targets: projectileRef,

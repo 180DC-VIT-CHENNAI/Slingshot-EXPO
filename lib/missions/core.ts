@@ -181,11 +181,11 @@ export function createMissionScene(
 
       if (config.multiShot && !this.hasScored && config.isComplete(this.targets)) {
         this.hasScored = true
-        this.scoredHit = false
+        this.scoredHit = true
         this.vx = 0
         this.vy = 0
         this.clearTrail()
-        onResult(true, config.getScore(this.targets))
+        this.showMissionComplete()
       }
     }
 
@@ -834,7 +834,7 @@ export function createMissionScene(
       } else {
         this.time.delayedCall(MISS_ACTION_DELAY, () => {
           this.time.removeAllEvents()
-          onResult(true, config.getScore(this.targets))
+          onResult(false, 0)
         })
       }
     }
@@ -1064,7 +1064,7 @@ export function createMissionScene(
 
       this.popupContainers.push(container)
 
-      this.time.delayedCall(4500, () => {
+      this.time.delayedCall(3500, () => {
         if (!container.active) return
         this.tweens.add({
           targets: container,
