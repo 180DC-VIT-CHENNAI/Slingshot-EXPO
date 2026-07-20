@@ -37,7 +37,7 @@ export const mission2Config: MissionConfig = {
   countdownColor: '#8B6914',
   multiShot: true,
   multiShotOnHit: true,
-  totalShots: 6,
+  totalShots: 4,
 
   drawEnvironment(scene, w, h) {
     const bg = scene.add.graphics()
@@ -174,7 +174,7 @@ export const mission2Config: MissionConfig = {
   updateMission(scene, px, py, targets, w, _h) {
     const counter = scene.children.getByName('crateCounter') as Phaser.GameObjects.Text | null
     if (counter) {
-      counter.setText(`Crates: ${targets.totalDestroyed} / ${targets.totalCrates}  |  Shots: ${targets.shotsUsed} / 6`)
+      counter.setText(`Crates: ${targets.totalDestroyed} / ${targets.totalCrates}  |  Shots: ${targets.shotsUsed} / 4`)
     }
 
     for (const c of targets.crates) {
@@ -221,12 +221,12 @@ export const mission2Config: MissionConfig = {
   },
 
   isComplete(targets) {
-    return targets.totalDestroyed >= targets.totalCrates || targets.shotsUsed >= 6
+    return targets.totalDestroyed >= targets.totalCrates || targets.shotsUsed >= 4
   },
 
   getScore(targets) {
     const base = (targets.totalDestroyed / targets.totalCrates) * 80
-    const shotBonus = Math.max(0, (6 - targets.shotsUsed) * 10)
+    const shotBonus = Math.max(0, (4 - targets.shotsUsed) * 10)
     return Math.min(100, Math.round(base + shotBonus))
   },
 }

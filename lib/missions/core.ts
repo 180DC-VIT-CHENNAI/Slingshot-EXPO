@@ -95,6 +95,7 @@ export function createMissionScene(
     private popupContainers: Phaser.GameObjects.Container[] = []
     private hasStarted = false
     private shotsUsed = 0
+    private missionCompleteShown = false
 
     constructor() {
       super(config.sceneKey)
@@ -180,6 +181,9 @@ export function createMissionScene(
       }
 
       if (config.multiShot && !this.hasScored && config.isComplete(this.targets)) {
+        console.log(
+          `[Mission ${config.sceneKey}] WIN CONDITION MET mid-flight — all targets destroyed`,
+        )
         this.hasScored = true
         this.scoredHit = true
         this.vx = 0
@@ -652,6 +656,18 @@ export function createMissionScene(
         this.projectile.x, this.projectile.y,
       )
 
+      const remaining =
+        this.targets.totalCrates !== undefined
+          ? `${this.targets.totalCrates - this.targets.totalDestroyed}/${this.targets.totalCrates} crates`
+          : this.targets.total !== undefined
+            ? `${this.targets.total - this.targets.collected}/${this.targets.total} folders`
+            : this.targets.totalBottlenecks !== undefined
+              ? `${this.targets.totalBottlenecks - this.targets.destroyedCount}/${this.targets.totalBottlenecks} bottlenecks`
+              : 'single-shot'
+      console.log(
+        `[Mission ${config.sceneKey}] HIT | shot #${this.shotsUsed} | remaining: ${remaining} | completed: ${hitResult.completed}`,
+      )
+
       play('hit')
       this.clearTrail()
 
@@ -716,6 +732,9 @@ export function createMissionScene(
       }
 
       const shouldContinue = config.multiShotOnHit && !config.isComplete(this.targets)
+      console.log(
+        `[Mission ${config.sceneKey}] DECISION | shouldContinue: ${shouldContinue} | isComplete: ${config.isComplete(this.targets)}`,
+      )
       if (shouldContinue) {
         this.time.delayedCall(POST_ACTION_DELAY, () => {
           if (!this.hasScored) return
@@ -740,6 +759,18 @@ export function createMissionScene(
       this.vy = 0
 
       config.onMiss(this, this.targets)
+
+      const remaining =
+        this.targets.totalCrates !== undefined
+          ? `${this.targets.totalCrates - this.targets.totalDestroyed}/${this.targets.totalCrates} crates`
+          : this.targets.total !== undefined
+            ? `${this.targets.total - this.targets.collected}/${this.targets.total} folders`
+            : this.targets.totalBottlenecks !== undefined
+              ? `${this.targets.totalBottlenecks - this.targets.destroyedCount}/${this.targets.totalBottlenecks} bottlenecks`
+              : 'single-shot'
+      console.log(
+        `[Mission ${config.sceneKey}] MISS | shot #${this.shotsUsed} | remaining: ${remaining}`,
+      )
 
       play('miss')
       this.clearTrail()
@@ -867,6 +898,7 @@ export function createMissionScene(
       this.hasScored = false
       this.scoredHit = false
       this.actionTakenThisRound = false
+      this.missionCompleteShown = false
       this.vx = 0
       this.vy = 0
       this.currentRotation = 0
@@ -888,6 +920,9 @@ export function createMissionScene(
     }
 
     private showMissionComplete() {
+      if (this.missionCompleteShown) return
+      this.missionCompleteShown = true
+
       const w = this.cameras.main.width
       const h = this.cameras.main.height
       const cx = w / 2
@@ -1008,14 +1043,14 @@ export function createMissionScene(
       const h = this.cameras.main.height
       const w = this.cameras.main.width
 
-      const boxW = Math.min(260, w * 0.45)
+      const boxW = Math.min(260, w * 0.65)
       const boxH = 70
       const margin = 8
-      const startX = w - 14
-      const startY = 14
+      const startX = w / 2
+      const startY = h - 20
 
       this.popupContainers.forEach((c, i) => {
-        const targetY = startY + (i + 1) * (boxH + margin)
+        const targetY = startY - (i + 1) * (boxH + margin) - boxH
         this.tweens.add({
           targets: c,
           y: targetY,
@@ -1027,20 +1062,20 @@ export function createMissionScene(
       const bg = this.add.graphics()
       const accent = popup.color ?? 0x7CFC00
       bg.fillStyle(0x000000, 0.85)
-      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
+      bg.fillRoundedRect(-boxW / 2, -boxH, boxW, boxH, 10)
       bg.lineStyle(2, accent, 0.9)
-      bg.strokeRoundedRect(-boxW, 0, boxW, boxH, 10)
+      bg.strokeRoundedRect(-boxW / 2, -boxH, boxW, boxH, 10)
       bg.fillStyle(accent, 0.08)
-      bg.fillRoundedRect(-boxW, 0, boxW, boxH, 10)
+      bg.fillRoundedRect(-boxW / 2, -boxH, boxW, boxH, 10)
 
-      const title = this.add.text(-boxW + 14, 10, popup.title, {
+      const title = this.add.text(-boxW / 2 + 14, -boxH + 10, popup.title, {
         fontSize: '14px',
         color: '#' + accent.toString(16).padStart(6, '0'),
         fontFamily: 'Poppins, sans-serif',
         fontStyle: 'bold',
       })
 
-      const body = this.add.text(-boxW + 14, 30, popup.body, {
+      const body = this.add.text(-boxW / 2 + 14, -boxH + 30, popup.body, {
         fontSize: '11px',
         color: '#dddddd',
         fontFamily: 'Poppins, sans-serif',
@@ -1048,7 +1083,7 @@ export function createMissionScene(
         lineSpacing: 2,
       })
 
-      const container = this.add.container(startX, startY, [bg, title, body])
+      const container = this.add.container(startX, startY - boxH - margin, [bg, title, body])
       container.setDepth(300)
       container.setAlpha(0)
       container.setScale(0.85)
@@ -1064,20 +1099,18 @@ export function createMissionScene(
 
       this.popupContainers.push(container)
 
-      this.time.delayedCall(3500, () => {
-        if (!container.active) return
-        this.tweens.add({
-          targets: container,
-          alpha: 0,
-          x: startX + 50,
-          duration: 400,
-          ease: 'Power2',
-          onComplete: () => {
-            const idx = this.popupContainers.indexOf(container)
-            if (idx >= 0) this.popupContainers.splice(idx, 1)
-            container.destroy()
-          },
-        })
+      this.tweens.add({
+        targets: container,
+        alpha: 0,
+        y: container.y + 30,
+        duration: 400,
+        delay: 3000,
+        ease: 'Power2',
+        onComplete: () => {
+          const idx = this.popupContainers.indexOf(container)
+          if (idx >= 0) this.popupContainers.splice(idx, 1)
+          container.destroy()
+        },
       })
     }
   }

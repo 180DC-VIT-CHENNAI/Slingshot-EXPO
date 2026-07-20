@@ -82,18 +82,19 @@ export interface CampaignProgress {
   levelStars: Record<number, number>
   levelScores: Record<number, number>
   completedLevels: number[]
+  attemptedLevels: number[]
   currentLevel: number
 }
 
 export function loadProgress(): CampaignProgress {
   if (typeof window === 'undefined') {
-    return { playerName: '', levelStars: {}, levelScores: {}, completedLevels: [], currentLevel: 1 }
+    return { playerName: '', levelStars: {}, levelScores: {}, completedLevels: [], attemptedLevels: [], currentLevel: 1 }
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch {}
-  return { playerName: '', levelStars: {}, levelScores: {}, completedLevels: [], currentLevel: 1 }
+  return { playerName: '', levelStars: {}, levelScores: {}, completedLevels: [], attemptedLevels: [], currentLevel: 1 }
 }
 
 export function saveProgress(progress: CampaignProgress): void {
@@ -117,8 +118,11 @@ export function updateLevelResult(levelId: number, stars: number, score: number)
   if (stars > 0 && !progress.completedLevels.includes(levelId)) {
     progress.completedLevels.push(levelId)
   }
+  if (!progress.attemptedLevels.includes(levelId)) {
+    progress.attemptedLevels.push(levelId)
+  }
   progress.currentLevel = Math.min(
-    Math.max(...progress.completedLevels, 0) + 1,
+    Math.max(...progress.attemptedLevels, ...progress.completedLevels, 0) + 1,
     MISSIONS.length,
   )
   saveProgress(progress)
@@ -140,5 +144,6 @@ export function getCurrentRank(progress: CampaignProgress): string {
 
 export function isLevelUnlocked(levelId: number, progress: CampaignProgress): boolean {
   if (levelId === 1) return true
-  return progress.completedLevels.includes(levelId - 1)
+  const attempted = progress.attemptedLevels ?? []
+  return progress.completedLevels.includes(levelId - 1) || attempted.includes(levelId - 1)
 }

@@ -79,7 +79,7 @@ export default function ResultScreen({
       const showStar = () => { if (i >= stars) return; setStarsVisible(i + 1); i++; setTimeout(showStar, 400); };
       setTimeout(showStar, 800);
     }
-    if (hit && hasNextLevel) {
+    if (hasNextLevel) {
       setCountdown(5);
       countdownRef.current = setInterval(() => {
         setCountdown((prev) => {
@@ -180,7 +180,7 @@ export default function ResultScreen({
 
           {showButtons && (
             <div className="space-y-2 mt-4 animate-slide-in-up">
-              {hit && hasNextLevel && onNextLevel && (
+              {hasNextLevel && onNextLevel && (
                 showPlayAgain ? (
                   <button onClick={onNextLevel} className="w-full btn-primary text-sm py-3.5 animate-scale-in">
                     NEXT MISSION →
@@ -188,7 +188,7 @@ export default function ResultScreen({
                 ) : (
                   <div
                     className="w-full text-sm py-3.5 text-center font-display font-bold text-white/40"
-                    style={{ background: "rgba(46,125,50,0.12)", border: "1px solid rgba(46,125,50,0.2)", borderRadius: "1rem" }}
+                    style={{ background: hit ? "rgba(46,125,50,0.12)" : "rgba(255,255,255,0.06)", border: hit ? "1px solid rgba(46,125,50,0.2)" : "1px solid rgba(255,255,255,0.1)", borderRadius: "1rem" }}
                   >
                     Next in {countdown}s...
                   </div>

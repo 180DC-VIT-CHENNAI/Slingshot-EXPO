@@ -121,7 +121,8 @@ export default function CampaignScreen({ onSelectLevel, onBack, onLogout }: Camp
                 )}
 
                 {missions.map((mission) => {
-                  const unlocked = mission.id === 1 || progress.completedLevels.includes(mission.id - 1)
+                  const attempted = progress.attemptedLevels ?? []
+                  const unlocked = mission.id === 1 || progress.completedLevels.includes(mission.id - 1) || attempted.includes(mission.id - 1)
                   const stars = progress.levelStars[mission.id] ?? 0
                   const bestScore = progress.levelScores[mission.id] ?? 0
                   const isCompleted = progress.completedLevels.includes(mission.id)

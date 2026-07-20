@@ -116,8 +116,9 @@ export const mission1Config: MissionConfig = {
       t.setDepth(-3)
     })
 
+    const isMobile = Math.min(w, h) < 600
     const slotX = w / 2
-    const slotY = h * 0.35
+    const slotY = h * (isMobile ? 0.38 : 0.35)
 
     const spot1 = scene.add.graphics().setDepth(-2)
     spot1.fillStyle(0xffffff, 0.03)
@@ -131,11 +132,10 @@ export const mission1Config: MissionConfig = {
 
     const spotGlow = scene.add.graphics().setDepth(-1)
     spotGlow.fillStyle(0x7CFC00, 0.05)
-    spotGlow.fillCircle(slotX, slotY, 80)
+    spotGlow.fillCircle(slotX, slotY, isMobile ? 120 : 80)
     scene.tweens.add({ targets: spotGlow, alpha: { from: 0.3, to: 0.7 }, scaleX: { from: 0.9, to: 1.15 }, scaleY: { from: 0.9, to: 1.15 }, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
 
-    const isMobile = Math.min(w, h) < 600
-    const s = isMobile ? 1.35 : 1
+    const s = isMobile ? 1.55 : 1
 
     const outerGlow = scene.add.graphics()
     outerGlow.fillStyle(0xffffff, 0.08)
@@ -184,9 +184,10 @@ export const mission1Config: MissionConfig = {
       scene.tweens.add({ targets: ring, alpha: { from: 0.7, to: 0 }, scaleX: { from: 1, to: 1.6 + i * 0.2 }, scaleY: { from: 1, to: 1.6 + i * 0.2 }, duration: 1000 + i * 200, repeat: -1, ease: 'Power2', delay: i * 180 })
     }
 
+    const hitRadiusVis = isMobile ? 130 : 94
     const outerRing = scene.add.graphics()
     outerRing.lineStyle(2, 0x7CFC00, 0.35)
-    outerRing.strokeCircle(slotX + 2, slotY, 94)
+    outerRing.strokeCircle(slotX + 2, slotY, hitRadiusVis)
     scene.tweens.add({ targets: outerRing, alpha: { from: 0.2, to: 0.6 }, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
 
     scene.add.text(slotX + 2, slotY, '?', {
@@ -254,11 +255,13 @@ export const mission1Config: MissionConfig = {
   },
 
   setupTargets(scene, w, h) {
+    const isMobile = Math.min(w, h) < 600
     return {
       slotX: w / 2,
-      slotY: h * 0.35,
+      slotY: h * (isMobile ? 0.38 : 0.35),
       hitDistance: Infinity,
       prevY: Infinity,
+      isMobile,
     }
   },
 
@@ -269,7 +272,8 @@ export const mission1Config: MissionConfig = {
     const movingDown = projectileY > targets.prevY
     targets.prevY = projectileY
 
-    if (dist < 70 && movingDown) {
+    const hitRadius = targets.isMobile ? 130 : 100
+    if (dist < hitRadius && movingDown) {
       targets.hitDistance = dist
       return { hit: true, hitDistance: dist }
     }
@@ -297,7 +301,8 @@ export const mission1Config: MissionConfig = {
   },
 
   getScore(targets) {
-    const dist = targets.hitDistance === Infinity ? 70 : targets.hitDistance
-    return Math.max(0, Math.round((1 - dist / 70) * 100))
+    const dist = targets.hitDistance === Infinity ? 100 : targets.hitDistance
+    const hitRadius = targets.isMobile ? 130 : 100
+    return Math.max(0, Math.round((1 - dist / hitRadius) * 100))
   },
 }

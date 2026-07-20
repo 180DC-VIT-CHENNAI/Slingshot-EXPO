@@ -21,7 +21,6 @@ export function validateName(name: string): { valid: boolean; error?: string } {
   const trimmed = name.trim()
   if (!trimmed) return { valid: false, error: 'Name is required' }
   if (trimmed.length > 20) return { valid: false, error: 'Name must be 20 characters or less' }
-  if (!/^[a-zA-Z\s]+$/.test(trimmed)) return { valid: false, error: 'Only letters and spaces allowed' }
   return { valid: true }
 }
 

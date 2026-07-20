@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 
 interface NameModalProps {
   onSubmit: (name: string) => void
+  hit?: boolean
 }
 
-export default function NameModal({ onSubmit }: NameModalProps) {
+export default function NameModal({ onSubmit, hit = true }: NameModalProps) {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [visible, setVisible] = useState(false)
@@ -28,7 +29,6 @@ export default function NameModal({ onSubmit }: NameModalProps) {
     const trimmed = name.trim()
     if (!trimmed) { setError('Please enter your name'); return }
     if (trimmed.length > 20) { setError('Max 20 characters'); return }
-    if (!/^[a-zA-Z\s]+$/.test(trimmed)) { setError('Only letters and spaces'); return }
     onSubmit(trimmed)
   }
 
@@ -42,12 +42,14 @@ export default function NameModal({ onSubmit }: NameModalProps) {
            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }} />
       <div className={`relative glass-card p-8 mx-6 max-w-sm w-full transition-all duration-700 ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-90'}`}>
         <div className="text-center mb-6">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-180dc-green-neon/40 bg-180dc-green/20 text-2xl font-black text-180dc-green-neon animate-scale-in">✓</div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-180dc-green-neon/40 bg-180dc-green/20 text-2xl font-black text-180dc-green-neon animate-scale-in">{hit ? '✓' : '!'}</div>
           <h2 className="font-display font-bold text-xl text-white">
-            Identity revealed!
+            {hit ? 'Identity revealed!' : 'Nice try!'}
           </h2>
           <p className="text-white/50 text-sm mt-2">
-            The release worked. The 180DC mark is uncovered.
+            {hit
+              ? 'The release worked. The 180DC mark is uncovered.'
+              : 'Every consultant starts somewhere. Keep going!'}
           </p>
           <p className="text-white/60 text-xs mt-2">
             Drop your name on the Wall of Consultants

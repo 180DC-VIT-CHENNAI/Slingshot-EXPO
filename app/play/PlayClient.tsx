@@ -70,17 +70,36 @@ function PlayContent() {
     } else {
       setScore(0)
       setEarnedStars(0)
-      setMessage(getRandomMissMessage())
-      setScreen('result')
+
+      updateLevelResult(currentLevelId, 0, 0)
+      setProgress(loadProgress())
+
+      const p = loadProgress()
+      if (!p.playerName) {
+        setScreen('name')
+      } else {
+        setMessage(getRandomMissMessage())
+        setScreen('result')
+
+        const totalScore = Object.values(p.levelScores).reduce((a, b) => a + b, 0)
+        fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: p.playerName, score: totalScore }),
+        }).catch(() => {})
+      }
     }
   }, [currentLevelId])
 
   const handleNameSubmit = useCallback(async (name: string) => {
     setPlayerName(name)
-    const stars = earnedStars
-    updateLevelResult(currentLevelId, stars, score)
-    setProgress(loadProgress())
-    setMessage(getRandomHitMessage())
+
+    const p = loadProgress()
+    p.playerName = name
+    const { saveProgress } = await import('@/lib/levels')
+    saveProgress(p)
+
+    setMessage(isHit ? getRandomHitMessage() : getRandomMissMessage())
     setScreen('result')
 
     if (name) {
@@ -92,13 +111,9 @@ function PlayContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, score: totalScore }),
         })
-        const p = loadProgress()
-        p.playerName = name
-        const { saveProgress } = await import('@/lib/levels')
-        saveProgress(p)
       } catch (e) { console.error('Failed to save session:', e) }
     }
-  }, [currentLevelId, earnedStars, score])
+  }, [isHit])
 
   const handlePlayAgain = useCallback(() => {
     gameKey.current++
@@ -200,7 +215,7 @@ function PlayContent() {
       )}
 
       {screen === 'name' && (
-        <NameModal onSubmit={handleNameSubmit} />
+        <NameModal onSubmit={handleNameSubmit} hit={isHit} />
       )}
 
       {screen === 'result' && (
