@@ -335,14 +335,29 @@ export const mission5Config: MissionConfig = {
       })
     })
 
+    if (isMobile) {
+      bottlenecks.forEach((bn, i) => {
+        if (i > 0) {
+          bn.container.setAlpha(0)
+          bn.container.setScale(0.5)
+          if (bn.warnTri && bn.warnTri.active) bn.warnTri.setAlpha(0)
+          if (bn.blockLabel && bn.blockLabel.active) bn.blockLabel.setAlpha(0)
+          if (bn.blockIcon && bn.blockIcon.active) bn.blockIcon.setAlpha(0)
+        }
+      })
+    }
+
     return {
       bottlenecks,
       nodes,
       destroyedCount: 0,
       totalBottlenecks: 3,
+      totalShots: 6,
       shotsUsed: 0,
       flowActiveSections: [false, false, false],
       isFullyUnlocked: false,
+      isMobile,
+      currentTargetIdx: 0,
     }
   },
 
@@ -356,7 +371,7 @@ export const mission5Config: MissionConfig = {
   ): MissionUpdate {
     const counter = scene.children.getByName('bnCounter') as Phaser.GameObjects.Text | null
     if (counter) {
-      counter.setText(`Blocked: ${targets.destroyedCount} / ${targets.totalBottlenecks}  |  Shots: ${targets.shotsUsed} / 6`)
+      counter.setText(`Blocked: ${targets.destroyedCount} / ${targets.totalBottlenecks}  |  Shots: ${targets.shotsUsed} / ${targets.totalShots}`)
     }
 
     const hitIdx = hitTestBottleneck(targets.bottlenecks, projectileX, projectileY)
@@ -467,6 +482,32 @@ export const mission5Config: MissionConfig = {
           const dx = flowStartX + flowWidth * t
           flowDotG.fillStyle(0x00E676, 0.7)
           flowDotG.fillCircle(dx, pipeY, 3)
+        }
+      }
+    }
+
+    if (targets.isMobile) {
+      const nextIdx = targets.bottlenecks.findIndex((b: any) => !b.destroyed)
+      if (nextIdx >= 0) {
+        const nextBn = targets.bottlenecks[nextIdx]
+        if (nextBn.container.alpha === 0) {
+          scene.tweens.add({
+            targets: nextBn.container,
+            alpha: 1,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 400,
+            ease: 'Back.easeOut',
+          })
+          if (nextBn.warnTri && nextBn.warnTri.active) {
+            scene.tweens.add({ targets: nextBn.warnTri, alpha: 0.6, duration: 400 })
+          }
+          if (nextBn.blockLabel && nextBn.blockLabel.active) {
+            scene.tweens.add({ targets: nextBn.blockLabel, alpha: 1, duration: 400 })
+          }
+          if (nextBn.blockIcon && nextBn.blockIcon.active) {
+            scene.tweens.add({ targets: nextBn.blockIcon, alpha: 1, duration: 400 })
+          }
         }
       }
     }
@@ -600,12 +641,13 @@ export const mission5Config: MissionConfig = {
   },
 
   isComplete(targets: any): boolean {
-    return targets.destroyedCount >= targets.totalBottlenecks || targets.shotsUsed >= 6
+    return targets.destroyedCount >= targets.totalBottlenecks || targets.shotsUsed >= targets.totalShots
   },
 
   getScore(targets: any): number {
+    const totalShots = targets.totalShots
     const base = (targets.destroyedCount / targets.totalBottlenecks) * 70
-    const shotBonus = Math.max(0, (6 - targets.shotsUsed) * 10)
+    const shotBonus = Math.max(0, (totalShots - targets.shotsUsed) * 10)
     return Math.min(100, Math.round(base + shotBonus))
   },
 }

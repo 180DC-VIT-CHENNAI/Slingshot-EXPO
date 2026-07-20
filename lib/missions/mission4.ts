@@ -68,6 +68,7 @@ export const mission4Config: MissionConfig = {
   countdownColor: '#FFD700',
 
   drawEnvironment(scene: Phaser.Scene, w: number, h: number) {
+    const isMobile = w < 500
     const bg = scene.add.graphics()
     for (let y = 0; y < h; y++) {
       const t = y / h
@@ -80,7 +81,7 @@ export const mission4Config: MissionConfig = {
     bg.setDepth(-20)
 
     const windowG = scene.add.graphics().setDepth(-18)
-    const skyT = h * 0.08
+    const skyT = h * (isMobile ? 0.10 : 0.08)
     const skyH = h * 0.22
     windowG.fillStyle(0x1a2a4a, 1)
     windowG.fillRect(w * 0.05, skyT, w * 0.9, skyH)
@@ -116,7 +117,7 @@ export const mission4Config: MissionConfig = {
       }
     })
 
-    const tableY = h * 0.55
+    const tableY = h * (isMobile ? 0.60 : 0.55)
     const tableG = scene.add.graphics().setDepth(-14)
     tableG.fillStyle(0x3E2723, 1)
     tableG.fillRoundedRect(w * 0.05, tableY - 10, w * 0.9, 20, 4)
@@ -154,14 +155,16 @@ export const mission4Config: MissionConfig = {
       chairG.fillRoundedRect(cp.x - 8, cp.y - 10, 16, 20, 4)
     })
 
+    const qY = isMobile ? h * 0.06 : h * 0.01
+    const qH = isMobile ? h * 0.055 : h * 0.06
     const qBg = scene.add.graphics().setDepth(5)
-    qBg.fillStyle(0x000000, 0.55)
-    qBg.fillRoundedRect(w * 0.08, h * 0.01, w * 0.84, h * 0.06, 8)
+    qBg.fillStyle(0x000000, 0.7)
+    qBg.fillRoundedRect(w * 0.08, qY, w * 0.84, qH, 8)
     qBg.lineStyle(1, 0xFFD700, 0.4)
-    qBg.strokeRoundedRect(w * 0.08, h * 0.01, w * 0.84, h * 0.06, 8)
+    qBg.strokeRoundedRect(w * 0.08, qY, w * 0.84, qH, 8)
 
-    scene.add.text(w / 2, h * 0.04, QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)], {
-      fontSize: `${Math.max(12, Math.min(16, w * 0.035))}px`,
+    scene.add.text(w / 2, qY + qH / 2, QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)], {
+      fontSize: `${Math.max(10, Math.min(isMobile ? 12 : 16, w * 0.035))}px`,
       color: '#FFD700',
       fontFamily: 'Poppins, sans-serif',
       fontStyle: 'bold',
@@ -171,7 +174,7 @@ export const mission4Config: MissionConfig = {
 
     const hintGlow = scene.add.graphics().setDepth(5)
     hintGlow.fillStyle(0xFFD700, 0.04)
-    hintGlow.fillRoundedRect(w * 0.08, h * 0.01, w * 0.84, h * 0.06, 8)
+    hintGlow.fillRoundedRect(w * 0.08, qY, w * 0.84, qH, 8)
     scene.tweens.add({
       targets: hintGlow,
       alpha: { from: 0.3, to: 0.8 },
@@ -219,8 +222,8 @@ export const mission4Config: MissionConfig = {
   },
 
   setupTargets(scene: Phaser.Scene, w: number, h: number): any {
-    const tableY = h * 0.55
     const isMobile = w < 500
+    const tableY = h * (isMobile ? 0.60 : 0.55)
     const cardW = isMobile ? Math.min(70, (w - 40) / 5 - 6) : 80
     const cardH = isMobile ? cardW * 1.35 : 110
     const labelSize = isMobile ? '9px' : '11px'
