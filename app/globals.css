@@ -129,3 +129,39 @@ body {
   0% { transform: rotate(-10deg); }
   100% { transform: rotate(10deg); }
 }
+
+@keyframes crown-float {
+  0%, 100% { transform: translateY(0px) rotate(-5deg); }
+  50% { transform: translateY(-6px) rotate(5deg); }
+}
+
+@keyframes rank-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 213, 74, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(255, 213, 74, 0.8), 0 0 40px rgba(255, 213, 74, 0.3); }
+}
+
+@keyframes shimmer-skeleton {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes podium-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes particle-drift {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+}
+
+.animate-crown-float { animation: crown-float 3s ease-in-out infinite; }
+.animate-rank-pulse { animation: rank-pulse 2s ease-in-out infinite; }
+.animate-shimmer-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer-skeleton 1.8s ease-in-out infinite;
+}
+.animate-podium-glow { animation: podium-glow 3s ease-in-out infinite; }
