@@ -273,7 +273,7 @@ export const mission1Config: MissionConfig = {
     targets.prevY = projectileY
 
     const hitRadius = targets.isMobile ? 130 : 100
-    if (dist < hitRadius && movingDown) {
+    if (dist < hitRadius && (movingDown || dist < hitRadius * 0.55)) {
       targets.hitDistance = dist
       return { hit: true, hitDistance: dist }
     }

@@ -21,32 +21,32 @@ function getInitials(name: string): string {
 }
 
 function getRankColor(rank: number): string {
-  if (rank === 1) return '#FFD54A'
-  if (rank === 2) return '#DADADA'
-  if (rank === 3) return '#CD7F32'
-  return '#8B5CF6'
+  if (rank === 1) return '#7CFC00'
+  if (rank === 2) return '#4CAF50'
+  if (rank === 3) return '#2E7D32'
+  return '#81C784'
 }
 
 function getRankGlow(rank: number): string {
-  if (rank === 1) return '0 0 20px rgba(255,213,74,0.5), 0 0 40px rgba(255,213,74,0.2)'
-  if (rank === 2) return '0 0 15px rgba(218,218,218,0.4), 0 0 30px rgba(218,218,218,0.15)'
-  if (rank === 3) return '0 0 15px rgba(205,127,50,0.4), 0 0 30px rgba(205,127,50,0.15)'
+  if (rank === 1) return '0 0 20px rgba(124,252,0,0.5), 0 0 40px rgba(124,252,0,0.2)'
+  if (rank === 2) return '0 0 15px rgba(76,175,80,0.4), 0 0 30px rgba(76,175,80,0.15)'
+  if (rank === 3) return '0 0 15px rgba(46,125,50,0.4), 0 0 30px rgba(46,125,50,0.15)'
   return 'none'
 }
 
 function getGradientBg(rank: number): string {
-  if (rank === 1) return 'linear-gradient(135deg, rgba(255,213,74,0.15) 0%, rgba(255,183,77,0.08) 100%)'
-  if (rank === 2) return 'linear-gradient(135deg, rgba(218,218,218,0.12) 0%, rgba(180,180,180,0.06) 100%)'
-  if (rank === 3) return 'linear-gradient(135deg, rgba(205,127,50,0.12) 0%, rgba(180,100,40,0.06) 100%)'
+  if (rank === 1) return 'linear-gradient(135deg, rgba(124,252,0,0.15) 0%, rgba(76,175,80,0.08) 100%)'
+  if (rank === 2) return 'linear-gradient(135deg, rgba(76,175,80,0.12) 0%, rgba(56,142,60,0.06) 100%)'
+  if (rank === 3) return 'linear-gradient(135deg, rgba(46,125,50,0.12) 0%, rgba(27,94,32,0.06) 100%)'
   return 'rgba(255,255,255,0.04)'
 }
 
 const CROWN_SVG = (
   <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
-    <path d="M2 14L4 5L8 9L10 2L12 9L16 5L18 14H2Z" fill="#FFD54A" stroke="#FFA000" strokeWidth="1"/>
-    <circle cx="4" cy="5" r="1.5" fill="#FFD54A"/>
-    <circle cx="10" cy="2" r="1.5" fill="#FFD54A"/>
-    <circle cx="16" cy="5" r="1.5" fill="#FFD54A"/>
+    <path d="M2 14L4 5L8 9L10 2L12 9L16 5L18 14H2Z" fill="#7CFC00" stroke="#4CAF50" strokeWidth="1"/>
+    <circle cx="4" cy="5" r="1.5" fill="#7CFC00"/>
+    <circle cx="10" cy="2" r="1.5" fill="#7CFC00"/>
+    <circle cx="16" cy="5" r="1.5" fill="#7CFC00"/>
   </svg>
 )
 
@@ -98,16 +98,16 @@ function LeaderboardBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
       <div className="absolute inset-0" style={{
-        background: 'linear-gradient(135deg, #1a0a3e 0%, #2A124A 25%, #3a1870 50%, #4A1E82 75%, #2A124A 100%)',
+        background: 'linear-gradient(135deg, #0a1628 0%, #0d1f23 25%, #132b1e 50%, #1a3a2a 75%, #0d1f23 100%)',
       }} />
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 30%, rgba(107,51,200,0.3) 0%, transparent 60%)',
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(124,252,0,0.12) 0%, transparent 60%)',
       }} />
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 50%, rgba(74,30,130,0.2) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at 50% 50%, rgba(46,125,50,0.1) 0%, transparent 70%)',
       }} />
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(10,5,30,0.6) 100%)',
+        background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(5,10,15,0.6) 100%)',
       }} />
       {[...Array(20)].map((_, i) => (
         <div
@@ -118,7 +118,7 @@ function LeaderboardBackground() {
             height: `${1 + Math.random() * 2}px`,
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
-            background: 'rgba(255,255,255,0.4)',
+            background: 'rgba(124,252,0,0.3)',
             animation: `particle-drift ${8 + Math.random() * 12}s linear ${Math.random() * 8}s infinite`,
           }}
         />
@@ -137,7 +137,7 @@ function LeaderboardHeader() {
     >
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-48 h-48 rounded-full animate-podium-glow" style={{
-          background: 'radial-gradient(circle, rgba(255,213,74,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(124,252,0,0.12) 0%, transparent 70%)',
         }} />
       </div>
       <motion.div
@@ -149,7 +149,7 @@ function LeaderboardHeader() {
       </motion.div>
       <h1 className="font-display font-extrabold text-2xl tracking-wider relative z-10" style={{
         color: '#fff',
-        textShadow: '0 0 20px rgba(255,213,74,0.3), 0 2px 4px rgba(0,0,0,0.3)',
+        textShadow: '0 0 20px rgba(124,252,0,0.3), 0 2px 4px rgba(0,0,0,0.3)',
       }}>
         LEADERBOARD
       </h1>
@@ -157,7 +157,7 @@ function LeaderboardHeader() {
       <div className="flex justify-center gap-1 mt-2 relative z-10">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="w-1 h-1 rounded-full" style={{
-            background: i === 2 ? '#FFD54A' : 'rgba(255,255,255,0.2)',
+            background: i === 2 ? '#7CFC00' : 'rgba(255,255,255,0.2)',
           }} />
         ))}
       </div>
@@ -282,10 +282,10 @@ function LeaderboardRow({ entry, index, isCurrentUser }: {
       whileHover={{ scale: 1.02, x: 4 }}
       className="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-default transition-all duration-200"
       style={{
-        background: isCurrentUser ? 'rgba(255,213,74,0.08)' : 'rgba(255,255,255,0.04)',
-        border: isCurrentUser ? '1.5px solid rgba(255,213,74,0.4)' : '1px solid rgba(255,255,255,0.06)',
+        background: isCurrentUser ? 'rgba(124,252,0,0.08)' : 'rgba(255,255,255,0.04)',
+        border: isCurrentUser ? '1.5px solid rgba(124,252,0,0.4)' : '1px solid rgba(255,255,255,0.06)',
         backdropFilter: 'blur(8px)',
-        boxShadow: isCurrentUser ? '0 0 20px rgba(255,213,74,0.15), 0 4px 16px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: isCurrentUser ? '0 0 20px rgba(124,252,0,0.15), 0 4px 16px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
       {/* Rank badge */}
@@ -322,9 +322,9 @@ function LeaderboardRow({ entry, index, isCurrentUser }: {
           {isCurrentUser && (
             <span className="text-[10px] font-display font-bold px-2 py-0.5 rounded-full shrink-0 animate-rank-pulse"
               style={{
-                background: 'rgba(255,213,74,0.15)',
-                color: '#FFD54A',
-                border: '1px solid rgba(255,213,74,0.3)',
+                background: 'rgba(124,252,0,0.15)',
+                color: '#7CFC00',
+                border: '1px solid rgba(124,252,0,0.3)',
               }}
             >
               YOU
