@@ -221,7 +221,7 @@ export const mission2Config: MissionConfig = {
   },
 
   isComplete(targets) {
-    return targets.totalDestroyed >= targets.totalCrates || targets.shotsUsed >= 4
+    return targets.totalDestroyed >= targets.totalCrates || targets.shotsUsed >= (this.totalShots ?? 4)
   },
 
   getScore(targets) {

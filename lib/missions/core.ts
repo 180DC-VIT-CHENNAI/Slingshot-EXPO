@@ -460,6 +460,11 @@ export function createMissionScene(
         this.actionTakenThisRound = true
         this.time.removeAllEvents()
 
+        if (this.missionCompleteShown) {
+          onResult(true, config.getScore(this.targets))
+          return
+        }
+
         const wouldContinue = config.multiShotOnHit && !config.isComplete(this.targets)
         if (wouldContinue) {
           this.beginResetForNextShot()
@@ -997,13 +1002,6 @@ export function createMissionScene(
         alpha: 1,
         duration: 400,
         delay: 300,
-      })
-
-      this.time.delayedCall(POST_ACTION_DELAY + 500, () => {
-        this.input.once('pointerdown', () => {
-          this.time.removeAllEvents()
-          onResult(true, config.getScore(this.targets))
-        })
       })
     }
 
