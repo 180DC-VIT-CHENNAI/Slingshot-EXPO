@@ -179,7 +179,40 @@ export default function ResultScreen({
           )}
 
           {showButtons && (
-            <div className="space-y-2 mt-4 animate-slide-in-up">
+            <div className="flex justify-center gap-3 mt-3 mb-2">
+              <a
+                href="https://180dc.shop"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-display font-bold text-xs transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{
+                  background: 'rgba(46,125,50,0.15)',
+                  border: '1px solid rgba(46,125,50,0.35)',
+                  color: '#7CFC00',
+                }}
+              >
+                <img src="/images/180dc.png" alt="180DC" className="w-5 h-5" />
+                180DC Shop
+              </a>
+              <a
+                href="https://www.instagram.com/180dc.vitc/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-display font-bold text-xs transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                }}
+              >
+                <img src="/images/instagram.png" alt="Instagram" className="w-5 h-5" />
+                @180dc.vitc
+              </a>
+            </div>
+          )}
+
+          {showButtons && (
+            <div className="space-y-2 mt-2 animate-slide-in-up">
               {hasNextLevel && onNextLevel && (
                 showPlayAgain ? (
                   <button onClick={onNextLevel} className="w-full btn-primary text-sm py-3.5 animate-scale-in">
